@@ -2,10 +2,11 @@ import { Slot } from "expo-router";
 import { useFonts } from  'expo-font'
 
 export default function RootLayout() {
-  const [fontsLoader] = useFonts({
-    'Poppins-Regular': require('../assets/fonts/Poppins/Poppins-Regular.ttf')
+  const [fontsLoaded] = useFonts({
+    'Poppins-Regular': require('../assets/fonts/Poppins/Poppins-Regular.ttf'),
+    'Poppins-Bold': require('../assets/fonts/Poppins/Poppins-Bold.ttf'),
   })
-  if(!fontsLoader) return
+  if(!fontsLoaded) return null
 
   return <Slot />;
 }
