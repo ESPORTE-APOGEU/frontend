@@ -6,4 +6,4 @@ export default function CriarContaScreen() {
       <Text>Tela após logado (Criar Conta)</Text>
     </View>
   );
-}asdasd
+}
