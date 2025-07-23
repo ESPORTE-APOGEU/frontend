@@ -7,6 +7,7 @@ module.exports = {
     extend: {
       fontFamily: {
         comfortaa: ["Comfortaa_Regular"],
+        Poppins: ["Poppins-Regular"]
       },
     },
   },
