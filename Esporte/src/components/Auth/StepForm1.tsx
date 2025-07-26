@@ -21,7 +21,7 @@ export default function StepForm1({ onNext }: StepsSignupProps) {
   }, [form.name, form.email]);
 
   return (
-    <View className="flex-1 justify-center items-center mt-8">
+    <View className="flex-1">
       <TextInput 
         placeholder="Digite seu Nome"  
         label='Nome' value={form.name} onChangeText={(text) => setForm({ ...form, name: text })} />

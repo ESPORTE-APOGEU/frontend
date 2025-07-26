@@ -29,7 +29,7 @@ export default function StepsSignup({ step, onNext }: StepsSignupProps) {
   }));
 
   return (
-    <View className="flex-1 overflow-hidden">
+    <View className="flex-1 overflow-hidden justify-center">
       <Animated.View
         style={[
           {

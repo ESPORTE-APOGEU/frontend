@@ -7,7 +7,8 @@ export default function useSignup() {
         email: '',
         password: '',
         confirmPassword: '',
-        gender: Gender.Other,
+        age: 0,
+        gender: null,
         city: '',
         sports: [],
     });
