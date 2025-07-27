@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable } from "react-native";
-import useSignup from '@/hooks/singup';
+import useSignup from '@/hooks/Singup';
 import LargeButton from "../ui/Forms/LargeButtom";
 import TextInput from '../ui/Forms/TextInput';
 interface StepsSignupProps {

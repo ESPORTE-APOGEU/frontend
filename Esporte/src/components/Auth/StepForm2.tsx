@@ -3,7 +3,7 @@ import { View, Text, Pressable } from "react-native";
 import LargeButton from "../ui/Forms/LargeButtom";
 import TextInput from '../ui/Forms/TextInput';
 import DropDownInput from '../ui/Forms/DropDownInput';
-import useSignup from '@/hooks/singup';
+import useSignup from '@/hooks/Singup';
 
 interface StepsSignupProps {
   onNext?: () => void;

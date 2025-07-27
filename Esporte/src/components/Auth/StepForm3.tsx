@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, Alert } from "react-native";
 import { Gender } from '@/interfaces/SigupForm';
-import useSignup from '@/hooks/singup';
+import useSignup from '@/hooks/Singup';
 import LargeButton from "../ui/Forms/LargeButtom";
 import TextInput from '../ui/Forms/TextInput';
 import DropDownInput from '../ui/Forms/DropDownInput';
@@ -11,14 +11,53 @@ import Autocomplete from '../ui/Forms/AutoCompleteTags';
 interface StepsSignupProps {
   onNext?: () => void;
 }
+type Option = {
+  label: string;
+  value: string;
+};
 export default function StepForm3({ onNext }: StepsSignupProps) {
   const[selects,setSelects] = React.useState<any[]>([]);
+  const [selectedCity, setSelectedCity] = React.useState<string>('');
   const { form, setForm } = useSignup();
-    const handleNext = () => {
-      if (onNext) {
-        onNext();
+
+  const getCidadesFormatadas = async (): Promise<Option[]> => {
+  console.log("Buscando cidades formatadas...");
+  const res = await fetch("https://servicodados.ibge.gov.br/api/v1/localidades/municipios");
+  if (!res.ok) {
+    throw new Error("Erro ao buscar cidades");
+  }
+  const data = await res.json();
+  if (!Array.isArray(data)) {
+    throw new Error("Dados inválidos recebidos da API");
+  }
+  console.log("Dados recebidos:", data.length, "cidades encontradas");
+
+  const options: Option[] = data.map((cidade: any, index: number) => {
+    try {
+      const nomeCidade = cidade.nome;
+      const uf = cidade.microrregiao?.mesorregiao?.UF?.sigla;
+      
+      if (!nomeCidade || !uf) {
+        console.warn(`Cidade ${index} com dados incompletos:`, cidade);
+        return null;
       }
-    };
+      
+      const nomeFormatado = `${nomeCidade} - ${uf}`;
+
+      return {
+        label: nomeFormatado,
+        value: nomeFormatado,
+      };
+    } catch (error) {
+      console.error(`Erro ao processar cidade ${index}:`, error, cidade);
+      return null;
+    }
+  }).filter(Boolean) as Option[]; // Remove entradas null
+  
+  console.log("Opções processadas:", options.length, "cidades válidas");
+  console.log("Primeiras 3 cidades:", options.slice(0, 3));
+  return options;
+};
   return (
     <View>
         <TextInput
@@ -40,33 +79,43 @@ export default function StepForm3({ onNext }: StepsSignupProps) {
           placeholder="Selecione o seu gênero"
         />
 
-        <SearchAndSelectOne
+        <Autocomplete
           label="Cidade"
-          selectedValue={form.city}
-          onValueChange={(value) => setForm({ ...form, city: value ?? '' })}
-          options={[
-            { label: "São Paulo", value: "São Paulo" },
-            { label: "Rio de Janeiro", value: "Rio de Janeiro" },
-            { label: "Belo Horizonte", value: "Belo Horizonte" },
-          ]}
-          placeholder="Selecione sua cidade"
-        />
-        <SearchAndSelectList
-          label="Esportes"
-          selectedValues={selects}
-          onValuesChange={(values) => setSelects(values)}
-          onSearch={(query) => {
-            // Aqui você pode implementar a lógica de busca
-            console.log("Buscando por:", query);
+          awaitOptions={getCidadesFormatadas}
+          placeholder="Digite para buscar sua cidade"
+          multiSelect={false}
+          selectedValue={selectedCity}
+          onSelect={(value) => {
+            setSelectedCity(value);
+            setForm({ ...form, city: value });
           }}
+          onRemove={() => {
+            setSelectedCity('');
+            setForm({ ...form, city: '' });
+          }}
+        />
+        
+        <Autocomplete
+          label="Esportes"
           options={[
-            { label: "Futebol", value: "Futebol" },
-            { label: "Basquete", value: "Basquete" },
-            { label: "Vôlei", value: "Vôlei" },
-            { label: "Natação", value: "Natação" },
+            { label: "Futebol", value: "futebol" },
+            { label: "Basquete", value: "basquete" },
+            { label: "Vôlei", value: "volei" },
+            { label: "Natação", value: "natacao" },
+            { label: "Tênis", value: "tenis" },
+            { label: "Corrida", value: "corrida" },
+            { label: "Academia", value: "academia" },
+            { label: "Ciclismo", value: "ciclismo" },
           ]}
           placeholder="Selecione seus esportes"
+          multiSelect={true}
+          onSelect={(value) => {
+            console.log('Esporte selecionado:', value);
+            // Aqui você pode adicionar ao form se necessário
+            // setForm({ ...form, sports: [...(form.sports || []), value] });
+          }}
         />
+
         <LargeButton onPress={() => { Alert.alert("Conta criada com sucesso!"); }} title="Criar Conta" />
     </View>
   );

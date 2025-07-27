@@ -1,100 +1,201 @@
-import React, { useState, useEffect } from 'react';
-import { View, TextInput, Text, TouchableOpacity, ScrollView } from 'react-native';
+import React from 'react';
+import { View , Text, TouchableOpacity} from "react-native";
+import TextInput from './TextInput';
 
-interface Option {
+interface AutoCompleteTagsProps { 
+  options?: { label: string; value: string }[];
+  awaitOptions?: () => Promise<{ label: string; value: string }[]>;
+  onSelect?: (value: string) => void;
+  onRemove?: () => void;
   label: string;
-  value: string;
+  placeholder: string;
+  multiSelect?: boolean; // Nova prop para controlar seleção múltipla
+  selectedValue?: string; // Para seleção única
 }
 
-interface Props {
-  options: Option[];
-  onSearch?: (query: string) => void;
-  onSelect: (selected: string[]) => void;
-}
+export default function AutoCompleteTags({
+  options = [],
+  awaitOptions,
+  onSelect,
+  onRemove,
+  label,
+  placeholder,
+  multiSelect = false,
+  selectedValue,
+}: AutoCompleteTagsProps) {
+  const[optionsList, setOptionsList] = React.useState<{ label: string; value: string }[]>(options);
+  const [suggestions, setSuggestions] = React.useState<string[]>([]);
+  const [selectedValues, setSelectedValues] = React.useState<string[]>([]);
+  const [viewSuggestions, setViewSuggestions] = React.useState<boolean>(false);
+  const [inputValue, setInputValue] = React.useState<string>('');
+  const [isLoading, setIsLoading] = React.useState<boolean>(false);
+  const [hasLoaded, setHasLoaded] = React.useState<boolean>(false);
+  
+  // Use uma referência única para cada função awaitOptions
+  const awaitOptionsRef = React.useRef(awaitOptions);
 
-const SearchSelectVariosInput: React.FC<Props> = ({ options, onSearch, onSelect }) => {
-  const [query, setQuery] = useState('');
-  const [filtered, setFiltered] = useState<Option[]>(options);
-  const [selected, setSelected] = useState<Option[]>([]);
-
-  useEffect(() => {
-    if (onSearch) {
-      onSearch(query);
-    } else {
-      const lower = query.toLowerCase();
-      setFiltered(options.filter(o => o.label.toLowerCase().includes(lower)));
+  React.useEffect(() => {
+    // Resetar estado se a função awaitOptions mudou
+    if (awaitOptionsRef.current !== awaitOptions) {
+      awaitOptionsRef.current = awaitOptions;
+      setHasLoaded(false);
+      setOptionsList(options);
     }
-  }, [query, options]);
+  }, [awaitOptions, options]);
 
-  const toggleSelect = (item: Option) => {
-    let updated: Option[];
-    if (selected.some(s => s.value === item.value)) {
-      updated = selected.filter(s => s.value !== item.value);
-    } else {
-      updated = [...selected, item];
+  React.useEffect(() => {
+    // Só carrega se tem awaitOptions e ainda não carregou
+    if (awaitOptions && !hasLoaded && !isLoading) {
+      console.log(`AutoComplete (${label}): Carregando opções...`);
+      setIsLoading(true);
+      awaitOptions()
+        .then((data) => {
+          console.log(`AutoComplete (${label}): Opções carregadas:`, data.length, "itens");
+          setOptionsList(data);
+          setHasLoaded(true);
+        })
+        .catch((error) => {
+          console.error(`AutoComplete (${label}): Erro ao carregar opções:`, error);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
     }
-    setSelected(updated);
-    onSelect(updated.map(i => i.value));
+  }, [awaitOptions, hasLoaded, isLoading, label]);
+
+  const handleSearch = React.useCallback((query: string) => {
+    console.log(`AutoComplete (${label}): Pesquisando por:`, query);
+    setInputValue(query);
+    if (query.trim()) {
+      const usedValues = multiSelect ? selectedValues : (selectedValue ? [selectedValue] : []);
+      const filteredSuggestions = optionsList
+        .filter(option => 
+          option.label.toLowerCase().includes(query.toLowerCase()) &&
+          !usedValues.includes(option.value)
+        )
+        .sort((a, b) => {
+          const aIndex = a.label.toLowerCase().indexOf(query.toLowerCase());
+          const bIndex = b.label.toLowerCase().indexOf(query.toLowerCase());
+          return aIndex - bIndex;
+        })
+        .slice(0, 5) // Mostrar 5 sugestões
+        .map(option => option.label);
+      console.log(`AutoComplete (${label}): Sugestões filtradas:`, filteredSuggestions);
+      setSuggestions(filteredSuggestions);
+    } else {
+      setSuggestions([]);
+    }
+  }, [optionsList, selectedValues, multiSelect, selectedValue, label]);
+
+  const handleSelectSuggestion = (suggestion: string) => {
+    const selectedOption = optionsList.find(option => option.label === suggestion);
+    if (selectedOption) {
+      if (multiSelect) {
+        if (!selectedValues.includes(selectedOption.value)) {
+          const newSelectedValues = [...selectedValues, selectedOption.value];
+          setSelectedValues(newSelectedValues);
+        }
+      }
+      
+      if (onSelect) {
+        onSelect(selectedOption.value);
+      }
+      setInputValue('');
+      setSuggestions([]);
+      setViewSuggestions(false);
+    }
   };
 
-  const removeTag = (value: string) => {
-    const updated = selected.filter(s => s.value !== value);
-    setSelected(updated);
-    onSelect(updated.map(i => i.value));
+  const removeSelectedValue = (valueToRemove: string) => {
+    if (multiSelect) {
+      setSelectedValues(prev => prev.filter(value => value !== valueToRemove));
+    }
+    if (onRemove) {
+      onRemove();
+    }
   };
 
+  // Para seleção única, verificar se há valor selecionado
+  const hasSelection = multiSelect ? selectedValues.length > 0 : !!selectedValue;
+  const currentSelectedLabel = selectedValue ? optionsList.find(opt => opt.value === selectedValue)?.label : null;
   return (
-    <View style={{ padding: 10 }}>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 }}>
-        {selected.map(item => (
-          <TouchableOpacity
-            key={item.value}
-            onPress={() => removeTag(item.value)}
-            style={{
-              backgroundColor: '#ccc',
-              borderRadius: 16,
-              paddingHorizontal: 12,
-              paddingVertical: 4,
-              margin: 4,
-              flexDirection: 'row',
-              alignItems: 'center',
+    <View>
+      {/* Para seleção única - mostrar tag ou input */}
+      {!multiSelect && selectedValue ? (
+        <View className="mb-4 w-full items-center">
+          <View className="w-[80%]">
+            <Text className="font-[Poppins-Bold] mb-2" accessibilityLabel={label}>
+              {label}
+            </Text>
+            <View className="bg-green-100 border border-green-300 rounded-lg px-4 py-3 flex-row items-center justify-between">
+              <Text className="text-green-800 flex-1">{currentSelectedLabel || selectedValue}</Text>
+              <TouchableOpacity 
+                onPress={() => removeSelectedValue(selectedValue)}
+                className="ml-3 bg-green-200 rounded-full w-6 h-6 items-center justify-center"
+              >
+                <Text className="text-green-700 font-bold text-lg">×</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      ) : (
+        <>
+          {/* Tags selecionadas para seleção múltipla */}
+          {multiSelect && selectedValues.length > 0 && (
+            <View className="mb-2 w-full items-center">
+              <View className="w-[80%]">
+                <Text className="font-[Poppins-Bold] mb-2 text-sm">Selecionados:</Text>
+                <View className="flex-row flex-wrap">
+                  {selectedValues.map((value) => {
+                    const option = optionsList.find(opt => opt.value === value);
+                    return (
+                      <View key={value} className="bg-green-100 border border-green-300 rounded-full px-3 py-1 mr-2 mb-2 flex-row items-center">
+                        <Text className="text-green-800 text-sm">{option?.label || value}</Text>
+                        <TouchableOpacity 
+                          onPress={() => removeSelectedValue(value)}
+                          className="ml-2"
+                        >
+                          <Text className="text-green-600 font-bold">×</Text>
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })}
+                </View>
+              </View>
+            </View>
+          )}
+          
+          <TextInput
+            label={label}
+            placeholder={isLoading ? "Carregando..." : placeholder}
+            value={inputValue}
+            onFocus={() => setViewSuggestions(true)}
+            onBlur={() => {
+              setTimeout(() => setViewSuggestions(false), 150);
             }}
-          >
-            <Text>{item.label} ✕</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <TextInput
-        placeholder="Digite para buscar..."
-        value={query}
-        onChangeText={setQuery}
-        style={{
-          borderColor: '#aaa',
-          borderWidth: 1,
-          borderRadius: 8,
-          padding: 10,
-        }}
-      />
-
-      <ScrollView style={{ maxHeight: 200, marginTop: 8 }}>
-        {filtered.map(item => (
-          <TouchableOpacity
-            key={item.value}
-            onPress={() => toggleSelect(item)}
-            style={{
-              padding: 10,
-              backgroundColor: selected.some(s => s.value === item.value) ? '#eee' : '#fff',
-              borderBottomWidth: 1,
-              borderBottomColor: '#ddd',
-            }}
-          >
-            <Text>{item.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+            onChangeText={handleSearch}
+            editable={!isLoading}
+          />
+          
+          {viewSuggestions && suggestions.length > 0 && (
+            <View className="w-full items-center">
+              <View className="w-[80%] bg-white border border-gray-200 rounded-lg shadow-md mt-1">
+                {suggestions.map((suggestion, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    onPress={() => handleSelectSuggestion(suggestion)}
+                    className="p-3 border-b border-gray-100"
+                    activeOpacity={0.7}
+                  >
+                    <Text className="text-gray-800">{suggestion}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+        </>
+      )}
     </View>
   );
 };
 
-export default SearchSelectVariosInput;
