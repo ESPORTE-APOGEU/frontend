@@ -22,10 +22,11 @@ const TextInput: React.FC<Props> = ({
       <Text className="font-[Poppins-Bold] mb-0.5" accessibilityLabel={label}>
         {label}
       </Text>
-      <View className="border-b border-green-700">
+      <View className="rounded-lg border-b border-green-700">
         <RNTextInput
           placeholder={placeholder}
-          className={`h-10 bg-neutral-100/75 rounded-lg border-gray-100 ${
+          placeholderTextColor="rgba(0,0,0,0.5)"
+          className={`h-10 w-full bg-neutral-100/75 px-2 rounded-lg border-gray-100 ${
             className ?? ""
           }`}
           style={{
