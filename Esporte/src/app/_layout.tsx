@@ -4,6 +4,8 @@ import {
   Poppins_400Regular,
   Poppins_700Bold,
 } from "@expo-google-fonts/poppins";
+import { ClerkProvider } from "@clerk/clerk-expo";
+import { tokenCache } from "@clerk/clerk-expo/token-cache";
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -15,5 +17,9 @@ export default function RootLayout() {
     return null; // ou um splash screen
   }
 
-  return <Slot />;
+  return (
+    <ClerkProvider tokenCache={tokenCache}>
+      <Slot />
+    </ClerkProvider>
+  );
 }

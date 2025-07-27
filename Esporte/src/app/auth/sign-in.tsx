@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   View,
   Text,
@@ -8,15 +8,72 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import TextInput from "../../../src/components/ui/TextInput";
+import TextInput from "../../components/ui/TextInput";
+import { useSignIn, useSSO } from "@clerk/clerk-expo";
+import { useRouter } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 
 const GOOGLE_ICON = require("../../assets/images/google-logo.png");
 const APP_LOGO = require("../../assets/images/app-logo.png");
 
 export default function LoginScreen() {
+  const { signIn, setActive, isLoaded } = useSignIn();
+  const router = useRouter();
+  const { startSSOFlow } = useSSO();
+
+  const [emailAddress, setEmailAddress] = React.useState("");
+  const [password, setPassword] = React.useState("");
+
   const handleCreateAccountPress = () => {
     console.log("Create Account Pressed");
   };
+
+  const onSignInPress = async () => {
+    if (!isLoaded) return;
+
+    try {
+      const signInAttempt = await signIn.create({
+        identifier: emailAddress,
+        password,
+      });
+
+      if (signInAttempt.status === "complete") {
+        await setActive({ session: signInAttempt.createdSessionId });
+        router.replace("/auth/criarConta");
+      } else {
+        console.error(JSON.stringify(signInAttempt, null, 2));
+      }
+    } catch (err) {
+      console.error(JSON.stringify(err, null, 2));
+    }
+  };
+
+  const handleSocialSignIn = useCallback(
+    async (strategy: "oauth_google" | "oauth_apple") => {
+      try {
+        // Opcional: melhora UX no Android
+        await WebBrowser.warmUpAsync();
+
+        const { createdSessionId, setActive: activate } = await startSSOFlow({
+          strategy,
+        });
+
+        if (createdSessionId) {
+          if (!activate) {
+            console.error("Clerk ainda não inicializou o setActive");
+            return;
+          }
+          await activate({ session: createdSessionId });
+          router.replace("/auth/criarConta");
+        }
+      } catch (err) {
+        console.error("Erro no SSO:", err);
+      } finally {
+        WebBrowser.coolDownAsync();
+      }
+    },
+    [startSSOFlow, router]
+  );
 
   return (
     <KeyboardAvoidingView
@@ -67,8 +124,18 @@ export default function LoginScreen() {
         </Text>
 
         {/* Inputs */}
-        <TextInput placeholder="youremail@example.com" label="Email" />
-        <TextInput placeholder="******" label="Password" />
+        <TextInput
+          placeholder="youremail@example.com"
+          label="Email"
+          onChangeText={setEmailAddress}
+          value={emailAddress}
+        />
+        <TextInput
+          placeholder="******"
+          label="Password"
+          onChangeText={setPassword}
+          value={password}
+        />
 
         {/* Botão Log In */}
         <TouchableOpacity
@@ -81,7 +148,7 @@ export default function LoginScreen() {
             h-[6vh]
             rounded-[20px]
           "
-          onPress={() => {}}
+          onPress={onSignInPress}
         >
           <Text className="text-white font-semibold text-[24px]">Log In</Text>
         </TouchableOpacity>
@@ -112,7 +179,7 @@ export default function LoginScreen() {
               w-[14vw] h-[14vw]
               rounded-full
             "
-            onPress={() => {}}
+            onPress={() => handleSocialSignIn("oauth_apple")}
           >
             <Ionicons name="logo-apple" size={20} color="#fff" />
           </TouchableOpacity>
@@ -126,7 +193,7 @@ export default function LoginScreen() {
               w-[14vw] h-[14vw]
               rounded-full
             "
-            onPress={() => {}}
+            onPress={() => handleSocialSignIn("oauth_google")}
           >
             <Image
               source={GOOGLE_ICON}
