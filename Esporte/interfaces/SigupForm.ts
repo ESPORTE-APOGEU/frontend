@@ -10,7 +10,7 @@ export interface SignupForm {
     email: string;
     password: string;
     confirmPassword: string;
-    age: number;
+    birthday: Date | null;
     gender: Gender | null;
     city: string;
     sports: string[];

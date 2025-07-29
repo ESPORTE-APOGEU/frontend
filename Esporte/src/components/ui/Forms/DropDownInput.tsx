@@ -78,7 +78,7 @@ const DropDownInput: React.FC<Props> = ({
         {isLoading ? (
           <ActivityIndicator size="small" color="#0000ff" />
         ) : (
-          <View className="border-b border-green-700 relative"
+          <View className="border-b  border-green-700 relative"
             style={{
               shadowColor: '#000',
               shadowOffset: { width: 4, height: 6 },

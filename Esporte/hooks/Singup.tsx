@@ -7,7 +7,7 @@ export default function useSignup() {
         email: '',
         password: '',
         confirmPassword: '',
-        age: 0,
+        birthday: null,
         gender: null,
         city: '',
         sports: [],

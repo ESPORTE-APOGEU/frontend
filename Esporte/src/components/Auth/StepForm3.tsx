@@ -1,11 +1,11 @@
 import React from 'react';
-import { View, Text, Pressable, Alert, TouchableOpacity } from "react-native";
+import { View, Text, Alert, TouchableOpacity } from "react-native";
 import { Gender } from '@/interfaces/SigupForm';
 import useSignup from '@/hooks/Singup';
 import LargeButton from "../ui/Forms/LargeButtom";
+import DateInput from '../ui/Forms/DateInput';
 import TextInput from '../ui/Forms/TextInput';
 import DropDownInput from '../ui/Forms/DropDownInput';
-
 import Autocomplete from '../ui/Forms/AutoCompleteTags';
 interface StepsSignupProps {
   onNext?: () => void;
@@ -54,15 +54,19 @@ export default function StepForm3({ onNext }: StepsSignupProps) {
 };
   return (
     <View>
-        <TextInput
+        {/*<TextInput
           label="Idade"
           placeholder="digite a sua idade"
           keyboardType="numeric"
           value={form.age ? String(form.age) : ''}
           onChangeText={(text) => setForm({ ...form, age: Number(text) })}
+        />*/}
+        <DateInput
+          label="Data de Nascimento"
+          value={form.birthday}
+          onChange={(date) => setForm({ ...form, birthday: date })}
+          placeholder="Selecione sua data de nascimento"
         />
-  
-
         <DropDownInput
           label="Gênero"
           selectedValue={form.gender ?? ''}
