@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Pressable, Alert } from "react-native";
+import { View, Text, Pressable, Alert, TouchableOpacity } from "react-native";
 import { Gender } from '@/interfaces/SigupForm';
 import useSignup from '@/hooks/Singup';
 import LargeButton from "../ui/Forms/LargeButtom";
@@ -16,7 +16,7 @@ type Option = {
 };
 export default function StepForm3({ onNext }: StepsSignupProps) {
   const [selectedCity, setSelectedCity] = React.useState<string>('');
-  const [selectedSport, setSelectedSport] = React.useState<string>('');
+  const [selectedSports, setSelectedSports] = React.useState<string[]>([]);
   const { form, setForm } = useSignup();
 
   const getCidadesFormatadas = async (): Promise<Option[]> => {
@@ -92,8 +92,14 @@ export default function StepForm3({ onNext }: StepsSignupProps) {
         />
         <DropDownInput
           label='Esportes'
-          selectedValue={selectedSport ?? ''}
-          onValueChange={(value) => setSelectedSport(value)}
+          selectedValue={''}
+          multiSelect={true}
+          selectedItems={selectedSports}
+          onValueChange={(value) => {
+            if (value && !selectedSports.includes(value)) {
+              setSelectedSports([...selectedSports, value]);
+            }
+          }}
           options={[
             { label: "Futebol", value: "Futebol" },
             { label: "Basquete", value: "Basquete" },
@@ -101,11 +107,30 @@ export default function StepForm3({ onNext }: StepsSignupProps) {
             { label: "Natação", value: "Natação" },
             { label: "Corrida", value: "Corrida" },
           ]}
-          placeholder="Selecione seu estado"
+          placeholder="Selecione um esporte"
           mode="dialog"
-        />        
-        
-
+        />
+        {/* Tags selecionadas para seleção múltipla */}
+        {selectedSports.length > 0 && (
+          <View className="mb-2 w-full items-center">
+            <View className="w-[80%]">
+              <Text className="font-[Poppins-Bold] mb-2 text-sm">Selecionados:</Text>
+              <View className="flex-row flex-wrap">
+                {selectedSports.map((value) => (
+                  <View key={value} className="bg-green-100 border border-green-300 rounded-full px-3 py-1 mr-2 mb-2 flex-row items-center">
+                    <Text className="text-green-800 text-sm">{value}</Text>
+                    <TouchableOpacity 
+                      onPress={() => setSelectedSports(selectedSports.filter(v => v !== value))}
+                      className="ml-2"
+                    >
+                      <Text className="text-green-600 font-bold">×</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </View>
+        )}
         <LargeButton onPress={() => { Alert.alert("Conta criada com sucesso!"); }} title="Criar Conta" />
     </View>
   );
