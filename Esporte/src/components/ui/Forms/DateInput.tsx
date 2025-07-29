@@ -6,9 +6,10 @@ interface DateInputProps {
   onChange?: (date: Date) => void;
   label?: string;
   placeholder?: string;
+  maximumDate?: Date; // Permite definir uma data máxima
 }
 
-export default function DateInput({ value, onChange, label, placeholder }: DateInputProps) {
+export default function DateInput({ value, onChange, label, placeholder, maximumDate }: DateInputProps) {
 
     const [PTBRformat,setPTBRformat ] = React.useState('')
     const [show, setShow] = useState(false);
@@ -49,9 +50,9 @@ export default function DateInput({ value, onChange, label, placeholder }: DateI
                 }}>
                 <Pressable 
                     onPress={() => setShow(true)} 
-                    className="bg-neutral-100/95 border-b border-green-700 relative p-3 rounded-lg items-center justify-center"
+                    className={`${value ? 'bg-[#40B843]' : 'bg-neutral-100/95'} border-b border-[#40B843] relative p-3 rounded-lg items-center justify-center`}
                 >
-                    <Text className="text-gray-500 text-center">
+                    <Text className={value ? "text-white text-center" : "text-gray-500 text-center"}>
                         {PTBRformat ? PTBRformat : placeholder}
                     </Text>
                 </Pressable>
@@ -62,7 +63,7 @@ export default function DateInput({ value, onChange, label, placeholder }: DateI
             mode="date"
             display={Platform.OS === 'ios' ? 'spinner' : 'default'}
             onChange={onChangeInput}
-            maximumDate={new Date()}
+            maximumDate={maximumDate}
             accentColor='#15803d'
             />
         )}

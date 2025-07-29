@@ -66,6 +66,7 @@ export default function StepForm3({ onNext }: StepsSignupProps) {
           value={form.birthday}
           onChange={(date) => setForm({ ...form, birthday: date })}
           placeholder="Selecione sua data de nascimento"
+          maximumDate={new Date(2020, 11, 31)}
         />
         <DropDownInput
           label="Gênero"
@@ -121,13 +122,13 @@ export default function StepForm3({ onNext }: StepsSignupProps) {
               <Text className="font-[Poppins-Bold] mb-2 text-sm">Selecionados:</Text>
               <View className="flex-row flex-wrap">
                 {selectedSports.map((value) => (
-                  <View key={value} className="bg-green-100 border border-green-300 rounded-full px-3 py-1 mr-2 mb-2 flex-row items-center">
-                    <Text className="text-green-800 text-sm">{value}</Text>
+                  <View key={value} className="bg-[#40B843]  rounded-lg px-3 py-1 mr-2 mb-2 flex-row items-center">
+                    <Text className="text-white text-sm">{value}</Text>
                     <TouchableOpacity 
                       onPress={() => setSelectedSports(selectedSports.filter(v => v !== value))}
                       className="ml-2"
                     >
-                      <Text className="text-green-600 font-bold">×</Text>
+                      <Text className="text-white font-bold">×</Text>
                     </TouchableOpacity>
                   </View>
                 ))}
