@@ -34,7 +34,7 @@ export default function CriarContaScreen() {
           <Image source={require('../../assets/images/seta-voltar.png')}
           />
         </Pressable>
-        <Text className="text-5xl text-white m-8 font-[Poppins-Bold]">Criar {'\n'}Conta.</Text>
+        <Text className="text-5xl text-white m-8 font-[Poppins-Bold] font-bold">Criar {'\n'}Conta.</Text>
       </View>
       <StepsSignup step={step} onNext={handleNext} />
     </View>

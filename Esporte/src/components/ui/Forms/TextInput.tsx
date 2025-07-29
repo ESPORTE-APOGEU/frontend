@@ -28,7 +28,7 @@ const TextInput: React.FC<Props> = ({
   return (
     <View className="mb-4 w-full items-center font-[Poppins-Regular]">
       <View className="w-[80%]">
-        <Text className="font-[Poppins-Bold] mb-0.5" accessibilityLabel={label}>
+        <Text className="font-[Poppins-Bold] mb-0.5 font-bold" accessibilityLabel={label}>
           {label}
         </Text>
         <View className="border-b border-green-700 relative">

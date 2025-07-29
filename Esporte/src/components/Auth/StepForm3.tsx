@@ -5,8 +5,7 @@ import useSignup from '@/hooks/Singup';
 import LargeButton from "../ui/Forms/LargeButtom";
 import TextInput from '../ui/Forms/TextInput';
 import DropDownInput from '../ui/Forms/DropDownInput';
-import SearchAndSelectList from '../ui/Forms/SearchAndSelectList';
-import SearchAndSelectOne from '../ui/Forms/SearchAndSelectOne';
+
 import Autocomplete from '../ui/Forms/AutoCompleteTags';
 interface StepsSignupProps {
   onNext?: () => void;
@@ -16,8 +15,8 @@ type Option = {
   value: string;
 };
 export default function StepForm3({ onNext }: StepsSignupProps) {
-  const[selects,setSelects] = React.useState<any[]>([]);
   const [selectedCity, setSelectedCity] = React.useState<string>('');
+  const [selectedSport, setSelectedSport] = React.useState<string>('');
   const { form, setForm } = useSignup();
 
   const getCidadesFormatadas = async (): Promise<Option[]> => {
@@ -30,15 +29,12 @@ export default function StepForm3({ onNext }: StepsSignupProps) {
   if (!Array.isArray(data)) {
     throw new Error("Dados inválidos recebidos da API");
   }
-  console.log("Dados recebidos:", data.length, "cidades encontradas");
-
   const options: Option[] = data.map((cidade: any, index: number) => {
     try {
       const nomeCidade = cidade.nome;
       const uf = cidade.microrregiao?.mesorregiao?.UF?.sigla;
       
       if (!nomeCidade || !uf) {
-        console.warn(`Cidade ${index} com dados incompletos:`, cidade);
         return null;
       }
       
@@ -54,8 +50,6 @@ export default function StepForm3({ onNext }: StepsSignupProps) {
     }
   }).filter(Boolean) as Option[]; // Remove entradas null
   
-  console.log("Opções processadas:", options.length, "cidades válidas");
-  console.log("Primeiras 3 cidades:", options.slice(0, 3));
   return options;
 };
   return (
@@ -67,6 +61,8 @@ export default function StepForm3({ onNext }: StepsSignupProps) {
           value={form.age ? String(form.age) : ''}
           onChangeText={(text) => setForm({ ...form, age: Number(text) })}
         />
+  
+
         <DropDownInput
           label="Gênero"
           selectedValue={form.gender ?? ''}
@@ -94,27 +90,21 @@ export default function StepForm3({ onNext }: StepsSignupProps) {
             setForm({ ...form, city: '' });
           }}
         />
-        
-        <Autocomplete
-          label="Esportes"
+        <DropDownInput
+          label='Esportes'
+          selectedValue={selectedSport ?? ''}
+          onValueChange={(value) => setSelectedSport(value)}
           options={[
-            { label: "Futebol", value: "futebol" },
-            { label: "Basquete", value: "basquete" },
-            { label: "Vôlei", value: "volei" },
-            { label: "Natação", value: "natacao" },
-            { label: "Tênis", value: "tenis" },
-            { label: "Corrida", value: "corrida" },
-            { label: "Academia", value: "academia" },
-            { label: "Ciclismo", value: "ciclismo" },
+            { label: "Futebol", value: "Futebol" },
+            { label: "Basquete", value: "Basquete" },
+            { label: "Vôlei", value: "Vôlei" },
+            { label: "Natação", value: "Natação" },
+            { label: "Corrida", value: "Corrida" },
           ]}
-          placeholder="Selecione seus esportes"
-          multiSelect={true}
-          onSelect={(value) => {
-            console.log('Esporte selecionado:', value);
-            // Aqui você pode adicionar ao form se necessário
-            // setForm({ ...form, sports: [...(form.sports || []), value] });
-          }}
-        />
+          placeholder="Selecione seu estado"
+          mode="dialog"
+        />        
+        
 
         <LargeButton onPress={() => { Alert.alert("Conta criada com sucesso!"); }} title="Criar Conta" />
     </View>
