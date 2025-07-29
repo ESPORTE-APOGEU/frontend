@@ -1,24 +1,10 @@
 import { router } from "expo-router";
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, Image, ScrollView } from "react-native";
-import * as ImagePicker from "expo-image-picker";
 
 export default function ConfirmarSenha() {
   const [eventName, setEventName] = useState("");
   const [eventDescription, setEventDescription] = useState("");
-  const [eventImage, setEventImage] = useState(require("../assets/images/tela.png"));
-
-  const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [384, 188],
-      quality: 1,
-    });
-    if (!result.canceled) {
-      setEventImage({ uri: result.assets[0].uri });
-    }
-  };
 
   return (
     <View className="flex-1 bg-[#FFFFFF]">
@@ -47,16 +33,11 @@ export default function ConfirmarSenha() {
           className="ml-2 text-[28px] mt-[50px] mb-2 left-[82px] font-bold"
         />
 
-        <TouchableOpacity
-          onPress={pickImage}
+        <Image
+          source={require("../assets/images/tela.png")}
           className="mt-[20px] left-[28px] w-[355px] h-[188px] rounded-[20px] overflow-hidden"
-        >
-          <Image
-            source={eventImage}
-            className="w-full h-full"
-            resizeMode="cover"
-          />
-        </TouchableOpacity>
+          resizeMode="cover"
+        />
 
         <Text className="text-[25px] ml-[30px] mt-[30px] text-black font-bold">
           Descrição
