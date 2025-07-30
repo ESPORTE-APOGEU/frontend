@@ -93,25 +93,31 @@ const DropDownInput: React.FC<Props> = ({
               mode={mode}
               dropdownIconColor="#047857"
               style={{
-                backgroundColor: 'rgba(244, 244, 245, 0.95)',
-                borderRadius: 12,
+              padding:0,
+              margin: 0,
+              boxSizing: 'border-box',
+              backgroundColor: 'rgba(244, 244, 245, 0.95)',
+              borderRadius: 12,
+              //height: 40,
+              fontSize: 14, //Tamanho da fonte não funciona
+              lineHeight: 20,
               }}
             >
               <Picker.Item
-                label={placeholder || 'Selecione'}
-                value=""
-                enabled={false}
-                color="#9ca3af"
+              label={placeholder || 'Selecione'}
+              value=""
+              enabled={false}
+              color="#6B7280" // cinza-500'
               />
               {(multiSelect
-                ? optionsList.filter(opt => !selectedItems.includes(opt.value))
-                : optionsList
+              ? optionsList.filter(opt => !selectedItems.includes(opt.value))
+              : optionsList
               ).map((option) => (
-                <Picker.Item
-                  key={option.value}
-                  label={option.label}
-                  value={option.value}
-                />
+              <Picker.Item
+                key={option.value}
+                label={option.label}
+                value={option.value}
+              />
               ))}
             </Picker>
           </View>

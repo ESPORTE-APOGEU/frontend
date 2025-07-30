@@ -50,9 +50,9 @@ export default function DateInput({ value, onChange, label, placeholder, maximum
                 }}>
                 <Pressable 
                     onPress={() => setShow(true)} 
-                    className={`${value ? 'bg-[#40B843]' : 'bg-neutral-100/95'} border-b border-[#40B843] relative p-3 rounded-lg items-center justify-center`}
+                    className={`${value ? 'bg-white' : 'bg-neutral-100/95'} border-b border-[#40B843] relative p-3 rounded-lg items-left justify-center`}
                 >
-                    <Text className={value ? "text-white text-center" : "text-gray-500 text-center"}>
+                    <Text className={value ? "text-gray-500 text-left" : "text-gray-500 text-left"}>
                         {PTBRformat ? PTBRformat : placeholder}
                     </Text>
                 </Pressable>

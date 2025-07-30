@@ -127,15 +127,24 @@ export default function AutoCompleteTags({
             <Text className="font-[Poppins-Bold] mb-2" accessibilityLabel={label}>
               {label}
             </Text>
-            <View className="bg-[#40B843] rounded-lg px-4 py-2 flex-row items-center justify-between" style={{ minHeight: 48 }}>
-              <Text className="text-white font-bold text-lg flex-1">{currentSelectedLabel || selectedValue}</Text>
-              <TouchableOpacity 
-                onPress={() => removeSelectedValue(selectedValue)}
-                className="w-8 h-8 items-center justify-center ml-2"
-                style={{ alignItems: 'center', justifyContent: 'center' }}
-              >
-                <Text className="text-white text-3xl font-bold">×</Text>
-              </TouchableOpacity>
+            <View className="border-b border-[#40B843] " 
+              style={{
+                shadowColor: '#000',
+                shadowOffset: { width: 4, height: 6 },
+                shadowOpacity: 0.4,
+                shadowRadius: 8,
+                elevation: 12,
+            }}>
+              <View className="bg-white/95 rounded-lg px-4 py-2 flex-row items-center justify-between">
+                <Text className="text-gray-500  text-sm flex-1">{currentSelectedLabel || selectedValue}</Text>
+                <TouchableOpacity 
+                  onPress={() => removeSelectedValue(selectedValue)}
+                  className="w-8 h-8 items-center justify-center ml-2"
+                  style={{ alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Text className="text-[#40B843] text-3xl font-bold">×</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </View>
