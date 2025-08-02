@@ -1,10 +1,59 @@
+import React, { useState, useEffect } from "react";
+import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, Alert } from "react-native";
 import { router } from "expo-router";
-import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Image, ScrollView } from "react-native";
+import { requestEventEntry } from "../services/EventEntryService";
+import axios from "axios";
 
 export default function ConfirmarSenha() {
   const [eventName, setEventName] = useState("");
   const [eventDescription, setEventDescription] = useState("");
+  const [organizer, setOrganizer] = useState("");
+  const [organizerName, setOrganizerName] = useState("");
+  const [participants, setParticipants] = useState<{ name: string }[]>([
+    {
+      name: "Diego Alcantara"
+    }
+  ]);
+  const eventId = 3; // substitua pelo ID do evento que você deseja buscar
+
+  useEffect(() => {
+    const fetchEvent = async () => {
+      const response = await axios.get(`http://192.168.100.10:8080/api/v1/events/${eventId}`);
+      setOrganizer(response.data.organizerPhoto);
+      setOrganizerName(response.data.organizerName);
+    };
+    fetchEvent();
+  }, []);
+
+  useEffect(() => {
+    const fetchParticipants = async () => {
+        const response = await axios.get(`http://192.168.100.10:8080/api/v1/events/${eventId}/participants`);
+        setParticipants(response.data);
+    };
+    fetchParticipants();
+  }, []);
+
+  const handleSolicitarEntrada = async () => {
+    try {
+      const data = await requestEventEntry(3, 123); // substitua os valores conforme necessário
+      Alert.alert("Sucesso", data.message);
+      router.push("/auth");
+    } catch (error: any) {
+      Alert.alert("Erro", error.message);
+    }
+  };
+
+  const handleCreateEvent = async () => {
+    try {
+      const response = await axios.post("http://192.168.100.10:8080/api/v1/events", {
+        name: eventName,
+        description: eventDescription,
+      });
+      Alert.alert("Sucesso", "Evento criado com sucesso!");
+    } catch (error) {
+      Alert.alert("Erro", "Não foi possível criar o evento.");
+    }
+  };
 
   return (
     <View className="flex-1 bg-[#FFFFFF]">
@@ -30,7 +79,8 @@ export default function ConfirmarSenha() {
           onChangeText={setEventName}
           placeholder="Nome do evento"
           placeholderTextColor="#000000"
-          className="ml-2 text-[28px] mt-[50px] mb-2 left-[82px] font-bold"
+          maxLength={20}
+          className="ml-2 text-[27px] mt-[50px] mb-2 left-[80px] font-bold"
         />
 
         <Image
@@ -149,91 +199,47 @@ export default function ConfirmarSenha() {
 
         <Text className="text-[25px] ml-[30px] top-[-30px] text-black font-bold">
           Organizador do evento
-        </Text><View className="flex-row items-center ml-[30px]">
-            <View className="relative w-[40px] h-[38px] mr-4">
-              <Image
-                source={require("../assets/images/Criador.png")}
-                className="w-[40px] h-[38px]"
-                resizeMode="cover"
-              />
-              
-            </View>
-            <View className="flex-col">
-              <Text className="text-[16px] font-bold top-[8px] text-black">
-                Samara Santos
-              </Text>
-              <Text className="text-[14px] text-black">
-                {/* Adicione informação extra se necessário */}
-              </Text>
-            </View>
+        </Text>
+        <View className="flex-row items-center ml-[30px]">
+          <View className="relative w-[40px] h-[38px] mr-4">
+            <Image
+              source={{ uri: organizer }}
+              className="w-[40px] h-[38px]"
+              resizeMode="cover"
+            />
           </View>
-        
+          <View className="flex-col">
+            <Text className="text-[16px] font-bold top-[8px] text-black">
+              {organizerName}
+            </Text>
+          </View>
+        </View>
+
         <Text className="text-[25px] ml-[30px] top-[30px] text-black font-bold">
           Participantes
         </Text>
-          <View className="flex-row items-center ml-[30px] top-[50px] ">
+        {participants.map((participant, index) => (
+          <View className="flex-row items-center ml-[30px] top-[50px] " key={index}>
             <View className="relative w-[40px] h-[38px] mr-4">
               <Image
                 source={require("../assets/images/participante.png")}
                 className="w-[40px] h-[38px]"
                 resizeMode="cover"
               />
-              
             </View>
             <View className="flex-col">
               <Text className="text-[16px] font-bold top-[8px] text-black">
-                Diego Alcantara
-              </Text>
-              <Text className="text-[14px] text-black">
-                {/* Adicione informação extra se necessário */}
+                {participant.name}
               </Text>
             </View>
           </View>
-          <View className="flex-row items-center ml-[30px] top-[70px] ">
-            <View className="relative w-[40px] h-[38px] mr-4">
-              <Image
-                source={require("../assets/images/participante.png")}
-                className="w-[40px] h-[38px]"
-                resizeMode="cover"
-              />
-              
-            </View>
-            <View className="flex-col">
-              <Text className="text-[16px] font-bold top-[8px] text-black">
-                Diego Alcantara
-              </Text>
-              <Text className="text-[14px] text-black">
-                {/* Adicione informação extra se necessário */}
-              </Text>
-            </View>
-          </View>
-          <View className="flex-row items-center ml-[30px] top-[90px] ">
-            <View className="relative w-[40px] h-[38px] mr-4">
-              <Image
-                source={require("../assets/images/participante.png")}
-                className="w-[40px] h-[38px]"
-                resizeMode="cover"
-              />
-              
-            </View>
-            <View className="flex-col">
-              <Text className="text-[16px] font-bold top-[8px] text-black">
-                Diego Alcantara
-              </Text>
-              <Text className="text-[14px] text-black">
-                {/* Adicione informação extra se necessário */}
-              </Text>
-            </View>
-          </View>
-        
+        ))}
       </ScrollView>
 
       {/* Botão fixo */}
       <TouchableOpacity
         className="absolute bottom-8 left-[46px] w-[328px] h-[56px] bg-[#40B843] rounded-[20px] shadow-md flex items-center justify-center z-50"
-        onPress={() => {
-          router.push("/auth");
-        }}
+        onPress={handleSolicitarEntrada}
       >
         <Text className="text-white text-lg font-bold text-[20px] ml-2">
           Solicitar entrada
