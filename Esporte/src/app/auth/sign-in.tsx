@@ -12,6 +12,8 @@ import TextInput from "../../components/ui/TextInput";
 import { useSignIn, useSSO } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
+import * as SecureStore from "expo-secure-store";
+import { useUser } from "@clerk/clerk-expo";
 
 const GOOGLE_ICON = require("../../assets/images/google-logo.png");
 const APP_LOGO = require("../../assets/images/app-logo.png");
@@ -25,7 +27,7 @@ export default function LoginScreen() {
   const [password, setPassword] = React.useState("");
 
   const handleCreateAccountPress = () => {
-    console.log("Create Account Pressed");
+    router.replace("/auth/criarConta");
   };
 
   const onSignInPress = async () => {
@@ -39,12 +41,47 @@ export default function LoginScreen() {
 
       if (signInAttempt.status === "complete") {
         await setActive({ session: signInAttempt.createdSessionId });
-        router.replace("/auth/criarConta");
+
+        // 1. Pega o userId do Clerk
+        const { user } = useUser();
+        const idClerk = user?.id;
+
+        if (!idClerk) {
+          console.error("User ID do Clerk não encontrado");
+          return;
+        }
+
+        // 2. Envia para o backend
+        const response = await fetch(
+          "http://localhost:8080/api/v1/auth/login",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ idClerk }),
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Erro ao autenticar com o backend");
+        }
+
+        // 3. Armazena o token do backend
+        await SecureStore.setItemAsync("token", data.token);
+
+        // 4. Redireciona
+        router.replace("/confirmar_senha");
       } else {
-        console.error(JSON.stringify(signInAttempt, null, 2));
+        console.error(
+          "Erro no login do Clerk:",
+          JSON.stringify(signInAttempt, null, 2)
+        );
       }
     } catch (err) {
-      console.error(JSON.stringify(err, null, 2));
+      console.error("Erro ao logar:", err);
     }
   };
 
@@ -64,7 +101,7 @@ export default function LoginScreen() {
             return;
           }
           await activate({ session: createdSessionId });
-          router.replace("/auth/criarConta");
+          router.replace("/create_conta");
         }
       } catch (err) {
         console.error("Erro no SSO:", err);
