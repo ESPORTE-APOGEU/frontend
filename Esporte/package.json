@@ -15,12 +15,15 @@
     "preset": "jest-expo"
   },
   "dependencies": {
-    "@clerk/clerk-expo": "^2.7.8",
+    "@clerk/clerk-expo": "^2.14.12",
     "@clerk/types": "^4.46.1",
     "@expo-google-fonts/comfortaa": "^0.2.3",
     "@expo-google-fonts/inter": "^0.2.3",
+    "@expo-google-fonts/poppins": "^0.4.0",
     "@expo/vector-icons": "^14.1.0",
     "@react-native-async-storage/async-storage": "^2.1.2",
+    "@react-native-community/datetimepicker": "8.4.1",
+    "@react-native-picker/picker": "2.11.1",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.0.14",
     "axios": "^1.8.1",
@@ -56,7 +59,8 @@
     "@babel/core": "^7.25.2",
     "@expo/cli": "^0.24.20",
     "@expo/config-plugins": "^10.1.2",
-    "tailwindcss": "^3.3.2"
+    "tailwindcss": "^3.3.2",
+    "typescript": "~5.8.3"
   },
   "private": true
 }
