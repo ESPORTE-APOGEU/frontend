@@ -1,5 +1,3 @@
-
-import "../styles/global.css";
 import { Slot } from "expo-router";
 import { useFonts } from "expo-font";
 import {
