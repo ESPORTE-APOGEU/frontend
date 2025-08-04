@@ -9,11 +9,7 @@ export default function ConfirmarSenha() {
   const [eventDescription, setEventDescription] = useState("");
   const [organizer, setOrganizer] = useState("");
   const [organizerName, setOrganizerName] = useState("");
-  const [participants, setParticipants] = useState<{ name: string }[]>([
-    {
-      name: "Diego Alcantara"
-    }
-  ]);
+  const [participants, setParticipants] = useState<{ name: string }[]>([]);
   const eventId = 3; // substitua pelo ID do evento que você deseja buscar
 
   useEffect(() => {
