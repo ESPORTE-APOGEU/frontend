@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, Alert } from "react-native";
+import { View, Text, TouchableOpacity, Image, ScrollView, Alert } from "react-native";
 import { router } from "expo-router";
 import { requestEventEntry } from "../services/EventEntryService";
 import axios from "axios";
@@ -18,17 +18,32 @@ export default function ConfirmarSenha() {
 
   useEffect(() => {
     const fetchEvent = async () => {
-      const response = await axios.get(`http://192.168.100.10:8080/api/v1/events/${eventId}`);
-      setOrganizer(response.data.organizerPhoto);
-      setOrganizerName(response.data.organizerName);
+      try {
+        const response = await axios.get(`http://192.168.100.10:8080/api/v1/events/${eventId}`);
+        setEventName(response.data.name);
+        setEventDescription(response.data.description);
+        setOrganizer(response.data.organizerPhoto);
+        setOrganizerName(response.data.organizerName);
+      } catch (error) {
+        console.error("Erro ao buscar evento:", error);
+      }
     };
     fetchEvent();
   }, []);
 
   useEffect(() => {
     const fetchParticipants = async () => {
+      try {
         const response = await axios.get(`http://192.168.100.10:8080/api/v1/events/${eventId}/participants`);
-        setParticipants(response.data);
+        // Verifique se os dados têm o formato esperado e adapte o estado
+        const formattedParticipants = response.data.map((user: { name: any; }) => ({
+          name: user.name || 'Usuário sem nome'
+        }));
+        setParticipants(formattedParticipants);
+      } catch (error) {
+        console.error("Erro ao buscar participantes:", error);
+        // Mantenha os participantes padrão em caso de erro
+      }
     };
     fetchParticipants();
   }, []);
@@ -40,18 +55,6 @@ export default function ConfirmarSenha() {
       router.push("/auth");
     } catch (error: any) {
       Alert.alert("Erro", error.message);
-    }
-  };
-
-  const handleCreateEvent = async () => {
-    try {
-      const response = await axios.post("http://192.168.100.10:8080/api/v1/events", {
-        name: eventName,
-        description: eventDescription,
-      });
-      Alert.alert("Sucesso", "Evento criado com sucesso!");
-    } catch (error) {
-      Alert.alert("Erro", "Não foi possível criar o evento.");
     }
   };
 
@@ -74,14 +77,10 @@ export default function ConfirmarSenha() {
           />
         </TouchableOpacity>
 
-        <TextInput
-          value={eventName}
-          onChangeText={setEventName}
-          placeholder="Nome do evento"
-          placeholderTextColor="#000000"
-          maxLength={20}
-          className="ml-2 text-[27px] mt-[50px] mb-2 left-[80px] font-bold"
-        />
+        {/* Transformado de TextInput para Text */}
+        <Text className="ml-3 text-[27px] mt-[50px] mb-6 left-[110px] top-[10px] font-bold">
+          {eventName || "Nome do evento"}
+        </Text>
 
         <Image
           source={require("../assets/images/tela.png")}
@@ -92,14 +91,11 @@ export default function ConfirmarSenha() {
         <Text className="text-[25px] ml-[30px] mt-[30px] text-black font-bold">
           Descrição
         </Text>
-        <TextInput
-          multiline
-          value={eventDescription}
-          onChangeText={setEventDescription}
-          placeholder="Nesta área, será inserida a descrição do evento com informações adicionais, recomendações, dicas ou o que o criador do evento julgar necessário."
-          placeholderTextColor="#000000"
-          className="ml-2 text-[16px] mt-1 left-[22px] w-[355px] textalign-justify"
-        />
+        
+        {/* Transformado de TextInput para Text */}
+        <Text className="ml-2 text-[16px] mt-1 left-[22px] w-[355px]">
+          { "Nesta área, será inserida a descrição do evento com informações adicionais, recomendações, dicas ou o que o criador do evento julgar necessário."}
+        </Text>
 
         {/* Bloco de informações */}
         <View className="mt-8 space-y-4">
@@ -218,22 +214,28 @@ export default function ConfirmarSenha() {
         <Text className="text-[25px] ml-[30px] top-[30px] text-black font-bold">
           Participantes
         </Text>
-        {participants.map((participant, index) => (
-          <View className="flex-row items-center ml-[30px] top-[50px] " key={index}>
-            <View className="relative w-[40px] h-[38px] mr-4">
-              <Image
-                source={require("../assets/images/participante.png")}
-                className="w-[40px] h-[38px]"
-                resizeMode="cover"
-              />
+        {participants.length > 0 ? (
+          participants.map((participant, index) => (
+            <View className="flex-row items-center ml-[30px] top-[50px]" key={index}>
+              <View className="relative w-[40px] h-[38px] mr-4">
+                <Image
+                  source={require("../assets/images/participante.png")}
+                  className="w-[40px] h-[38px]"
+                  resizeMode="cover"
+                />
+              </View>
+              <View className="flex-col">
+                <Text className="text-[16px] font-bold top-[0px] text-black">
+                  {participant.name}
+                </Text>
+              </View>
             </View>
-            <View className="flex-col">
-              <Text className="text-[16px] font-bold top-[8px] text-black">
-                {participant.name}
-              </Text>
-            </View>
-          </View>
-        ))}
+          ))
+        ) : (
+          <Text className="text-[16px] text-gray-500 ml-[30px] top-[50px]">
+            Nenhum participante.
+          </Text>
+        )}
       </ScrollView>
 
       {/* Botão fixo */}
