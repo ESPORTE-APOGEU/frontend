@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, Alert } from "react-native";
+import { View, Text, TouchableOpacity, Image, ScrollView, Alert } from "react-native";
 import { router } from "expo-router";
 import { requestEventEntry } from "../services/EventEntryService";
 import axios from "axios";
@@ -9,33 +9,56 @@ export default function ConfirmarSenha() {
   const [eventDescription, setEventDescription] = useState("");
   const [organizer, setOrganizer] = useState("");
   const [organizerName, setOrganizerName] = useState("");
+  const [eventLocation, setEventLocation] = useState("");
+  const [eventDate, setEventDate] = useState("");
+  const [eventStartTime, setEventStartTime] = useState("");
+  const [eventEndTime, setEventEndTime] = useState("");
+  const [eventLevel, setEventLevel] = useState("");
+  const [eventGender, setEventGender] = useState("");
+  const [price, setPrice] = useState("");
   const [participants, setParticipants] = useState<{ name: string }[]>([
-    {
-      name: "Diego Alcantara"
-    }
+    { name: "Diego Alcantara" }
   ]);
   const eventId = 3; // substitua pelo ID do evento que você deseja buscar
 
   useEffect(() => {
     const fetchEvent = async () => {
-      const response = await axios.get(`http://192.168.100.10:8080/api/v1/events/${eventId}`);
-      setOrganizer(response.data.organizerPhoto);
-      setOrganizerName(response.data.organizerName);
+      try {
+        const response = await axios.get(`http://192.168.100.10:8080/api/v1/events/${eventId}`);
+        // Integra os dados do evento
+        setEventName(response.data.name);
+        setEventDescription(response.data.description);
+        setOrganizer(response.data.organizerPhoto);
+        setOrganizerName(response.data.organizerName);
+        setEventLocation(response.data.location);
+        setEventDate(response.data.date);
+        setEventStartTime(response.data.startTime);
+        setEventEndTime(response.data.endTime);
+        setEventLevel(response.data.level);
+        setEventGender(response.data.gender);
+        setPrice(response.data.price);
+      } catch (error) {
+        console.error("Erro ao buscar evento:", error);
+      }
     };
     fetchEvent();
   }, []);
 
   useEffect(() => {
     const fetchParticipants = async () => {
+      try {
         const response = await axios.get(`http://192.168.100.10:8080/api/v1/events/${eventId}/participants`);
         setParticipants(response.data);
+      } catch (error) {
+        console.error("Erro ao buscar participantes:", error);
+      }
     };
     fetchParticipants();
   }, []);
 
   const handleSolicitarEntrada = async () => {
     try {
-      const data = await requestEventEntry(3, 123); // substitua os valores conforme necessário
+      const data = await requestEventEntry(eventId, 123); // substitua os valores conforme necessário
       Alert.alert("Sucesso", data.message);
       router.push("/auth");
     } catch (error: any) {
@@ -43,29 +66,12 @@ export default function ConfirmarSenha() {
     }
   };
 
-  const handleCreateEvent = async () => {
-    try {
-      const response = await axios.post("http://192.168.100.10:8080/api/v1/events", {
-        name: eventName,
-        description: eventDescription,
-      });
-      Alert.alert("Sucesso", "Evento criado com sucesso!");
-    } catch (error) {
-      Alert.alert("Erro", "Não foi possível criar o evento.");
-    }
-  };
-
   return (
     <View className="flex-1 bg-[#FFFFFF]">
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 180 }}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView contentContainerStyle={{ paddingBottom: 180 }} showsVerticalScrollIndicator={false}>
         <TouchableOpacity
           className="absolute top-[56px] left-[30px] z-50"
-          onPress={() => {
-            router.push("/auth");
-          }}
+          onPress={() => { router.push("/auth"); }}
         >
           <Text className="text-[40px] text-green-600">{'<'}</Text>
           <Image
@@ -74,14 +80,10 @@ export default function ConfirmarSenha() {
           />
         </TouchableOpacity>
 
-        <TextInput
-          value={eventName}
-          onChangeText={setEventName}
-          placeholder="Nome do evento"
-          placeholderTextColor="#000000"
-          maxLength={20}
-          className="ml-2 text-[27px] mt-[50px] mb-2 left-[80px] font-bold"
-        />
+        {/* Exibição do nome do evento (não editável) */}
+        <Text className="ml-2 text-[27px] top-[10px] mt-[50px] mb-4 left-[115px] font-bold">
+          {eventName}
+        </Text>
 
         <Image
           source={require("../assets/images/tela.png")}
@@ -89,17 +91,13 @@ export default function ConfirmarSenha() {
           resizeMode="cover"
         />
 
+        {/* Exibição da descrição (não editável) */}
         <Text className="text-[25px] ml-[30px] mt-[30px] text-black font-bold">
           Descrição
         </Text>
-        <TextInput
-          multiline
-          value={eventDescription}
-          onChangeText={setEventDescription}
-          placeholder="Nesta área, será inserida a descrição do evento com informações adicionais, recomendações, dicas ou o que o criador do evento julgar necessário."
-          placeholderTextColor="#000000"
-          className="ml-2 text-[16px] mt-1 left-[22px] w-[355px] textalign-justify"
-        />
+        <Text className="ml-2 text-[16px] mt-1 left-[22px] w-[355px] textalign-justify">
+          {eventDescription}
+        </Text>
 
         {/* Bloco de informações */}
         <View className="mt-8 space-y-4">
@@ -119,10 +117,10 @@ export default function ConfirmarSenha() {
             </View>
             <View className="flex-col">
               <Text className="text-[16px] font-bold text-black">
-                Domingo, 15 de maio , 2025
+                {eventDate || "Domingo, 15 de maio , 2025"}
               </Text>
               <Text className="text-[14px] text-black">
-                16:30 - 18:00 (90 min)
+                {eventStartTime && eventEndTime ? `${eventStartTime} - ${eventEndTime}` : "16:30 - 18:00"} (90 min)
               </Text>
             </View>
           </View>
@@ -143,10 +141,10 @@ export default function ConfirmarSenha() {
             </View>
             <View className="flex-col">
               <Text className="text-[16px] font-bold text-black">
-                Ibirapuera Park - Vila Mariana  &gt;
+                {eventLocation || "Ibirapuera Park - Vila Mariana"} &gt;
               </Text>
               <Text className="text-[14px] text-black">
-                Valor de entrada $40
+                Valor de entrada {price ? `$${price}` : "$40"}
               </Text>
             </View>
           </View>
@@ -167,7 +165,7 @@ export default function ConfirmarSenha() {
             </View>
             <View className="flex-col">
               <Text className="text-[16px] font-bold top-[8px] text-black">
-                Iniciante
+                {eventLevel || "Iniciante"}
               </Text>
               <Text className="text-[14px] text-black">
                 {/* Adicione informação extra se necessário */}
@@ -175,7 +173,7 @@ export default function ConfirmarSenha() {
             </View>
           </View>
 
-          {/* Masculino */}
+          {/* Gênero */}
           <View className="flex-row items-center ml-[170px] top-[-55px]">
             <View className="relative w-[40px] h-[38px] mr-4">
               <Image
@@ -189,14 +187,15 @@ export default function ConfirmarSenha() {
                 resizeMode="contain"
               />
             </View>
-            <View className="flex-col ">
+            <View className="flex-col">
               <Text className="text-[16px] font-bold top-[-1px] text-black">
-                Masculino
+                {eventGender === "F" ? "Feminino" : "Masculino"}
               </Text>
             </View>
           </View>
         </View>
 
+        {/* Organizador do evento */}
         <Text className="text-[25px] ml-[30px] top-[-30px] text-black font-bold">
           Organizador do evento
         </Text>
@@ -215,11 +214,12 @@ export default function ConfirmarSenha() {
           </View>
         </View>
 
+        {/* Participantes */}
         <Text className="text-[25px] ml-[30px] top-[30px] text-black font-bold">
           Participantes
         </Text>
         {participants.map((participant, index) => (
-          <View className="flex-row items-center ml-[30px] top-[50px] " key={index}>
+          <View className="flex-row items-center ml-[30px] top-[50px]" key={index}>
             <View className="relative w-[40px] h-[38px] mr-4">
               <Image
                 source={require("../assets/images/participante.png")}
@@ -247,4 +247,4 @@ export default function ConfirmarSenha() {
       </TouchableOpacity>
     </View>
   );
-}
+} 
