@@ -90,7 +90,7 @@ export default function Preview() {
                 </View>
                 
                 <View className="flex-1">
-                    <SvgComponent preserveAspectRatio="xMidYMid slice"/>
+                    <SvgComponent preserveAspectRatio="xMidYMid slice" className="bg-[#F7FFED]"/>
                 </View>
                 
                 {/* Seção do Texto com Animação */}
