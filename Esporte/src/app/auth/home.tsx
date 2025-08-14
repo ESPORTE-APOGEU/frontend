@@ -14,6 +14,7 @@ import EventCard from '../../components/EventCard';
 import BottomNavigation from '../../components/FutterBar';
 import axios from 'axios';
 import FilterModal from '../../components/FilterModal';
+import { debounce } from 'lodash';
 
 
 export interface EventResponse {
@@ -38,6 +39,7 @@ export default function Home() {
   const [events, setEvents] = useState<EventResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeFiltersCount, setActiveFiltersCount] = useState(0);
 
   useEffect(() => {
     fetchEvents();
@@ -60,11 +62,25 @@ export default function Home() {
   const handleFilter = async (filter: any) => {
     setLoading(true);
     setError(null);
+
+    const computeFilterCount = (f: any): number => {
+      if (!f) return 0;
+      let count = 0;
+      if (f.sports && f.sports.length > 0) count += 1; 
+      if (f.levels && f.levels.length > 0) count += 1; 
+      if (f.date) count += 1; 
+      if (f.startTime && f.endTime) count += 1; 
+      if (f.maxDistanceKm) count += 1; 
+      return count;
+    };
+
     try {
       if (filter === null) {
+        setActiveFiltersCount(0);
         await fetchEvents();
         return;
       }
+      setActiveFiltersCount(computeFilterCount(filter));
       const res = await axios.post('http://192.168.100.89:8080/api/v1/events/filter', filter);
       setEvents(res.data);
     } catch (err: any) {
@@ -72,6 +88,32 @@ export default function Home() {
       setError(err?.message || 'Erro ao conectar ao backend');
     }
     setLoading(false);
+  };
+
+  const debouncedSearch = React.useRef(
+    debounce(async (text: string) => {
+      setLoading(true);
+      setError(null);
+      try {
+        if (!text.trim()) {
+          await fetchEvents();
+          return;
+        }
+        const res = await axios.get('http://192.168.100.89:8080/api/v1/events/search', {
+          params: { q: text }
+        });
+        setEvents(res.data);
+      } catch (err: any) {
+        setEvents([]);
+        setError(err?.message || 'Erro ao conectar ao backend');
+      }
+      setLoading(false);
+    }, 500)
+  ).current;
+
+  const handleSearchChange = (text: string) => {
+    setSearchText(text);
+    debouncedSearch(text);
   };
 
   const handleEventPress = (eventId: number) => {
@@ -104,7 +146,7 @@ export default function Home() {
             <SearchBar
               placeholder="What are you looking for?"
               value={searchText}
-              onChangeText={setSearchText}
+              onChangeText={handleSearchChange}
             />
           </View>
         </View>
@@ -136,7 +178,20 @@ export default function Home() {
           onPress={() => setFilterModalVisible(true)}
         >
           <Text style={{ color: '#fff', fontWeight: 'bold', marginRight: 6 }}>Filter</Text>
-          <Ionicons name="filter" size={18} color="#fff" />
+          {activeFiltersCount > 0 ? (
+            <View style={{
+              width: 22,
+              height: 22,
+              borderRadius: 11,
+              backgroundColor: '#fff',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Text style={{ color: '#00D36C', fontWeight: 'bold', fontSize: 12 }}>{activeFiltersCount}</Text>
+            </View>
+          ) : (
+            <Ionicons name="filter" size={18} color="#fff" />
+          )}
         </TouchableOpacity>
       </View>
 
@@ -158,37 +213,29 @@ export default function Home() {
             <Text style={{ fontSize: 12, color: '#888', marginTop: 10, textAlign: 'center' }}>Debug: {JSON.stringify(events)}</Text>
           </View>
         ) : (
-          events
-            .filter(event => {
-              if (!searchText.trim()) return true;
-              const txt = searchText.toLowerCase();
-              return (
-                event.name.toLowerCase().includes(txt) ||
-                event.location.toLowerCase().includes(txt)
-              );
-            })
-            .map((event) => {
-              let priceLabel = 'Grátis';
-              if (event.price !== undefined && event.price !== null) {
-                if (typeof event.price === 'number') {
-                  priceLabel = event.price > 0 ? `R$ ${event.price}` : 'Grátis';
-                } else if (typeof event.price === 'string') {
-                  priceLabel = event.price !== '0.00' && event.price !== '0' ? `R$ ${event.price}` : 'Grátis';
-                }
+          // Remova o filtro local, apenas renderize os eventos recebidos
+          events.map((event) => {
+            let priceLabel = 'Grátis';
+            if (event.price !== undefined && event.price !== null) {
+              if (typeof event.price === 'number') {
+                priceLabel = event.price > 0 ? `R$ ${event.price}` : 'Grátis';
+              } else if (typeof event.price === 'string') {
+                priceLabel = event.price !== '0.00' && event.price !== '0' ? `R$ ${event.price}` : 'Grátis';
               }
-              return (
-                <EventCard
-                  key={event.id}
-                  eventName={event.name}
-                  location={event.location}
-                  date={event.date}
-                  participants={0}
-                  image={DEFAULT_IMAGE}
-                  price={priceLabel}
-                  onPress={() => handleEventPress(event.id)}
-                />
-              );
-            })
+            }
+            return (
+              <EventCard
+                key={event.id}
+                eventName={event.name}
+                location={event.location}
+                date={event.date}
+                participants={0}
+                image={DEFAULT_IMAGE}
+                price={priceLabel}
+                onPress={() => handleEventPress(event.id)}
+              />
+            );
+          })
         )}
       </ScrollView>
 

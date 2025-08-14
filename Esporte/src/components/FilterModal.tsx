@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, View, Text, TouchableOpacity, TextInput, ScrollView, Platform } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, TextInput, ScrollView, Platform, Alert } from 'react-native';
 import Slider from '@react-native-community/slider';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Location from 'expo-location';
@@ -15,12 +15,12 @@ const sportsOptions = ['Futebol', 'Basquete', 'Vôlei', 'Tênis', 'Handebol', 'C
 const FilterModal: React.FC<FilterModalProps> = ({ visible, onClose, onFilter }) => {
   const [selectedSports, setSelectedSports] = useState<string[]>([]);
   const [selectedLevel, setSelectedLevel] = useState<string>('Iniciante');
-  const [distance, setDistance] = useState<number>(3.4);
+  const [distance, setDistance] = useState<number>(0);
   const [eventDate, setEventDate] = useState<string>('');
-  const [startHour, setStartHour] = useState<string>('04');
-  const [startMinute, setStartMinute] = useState<string>('50');
-  const [endHour, setEndHour] = useState<string>('04');
-  const [endMinute, setEndMinute] = useState<string>('50');
+  const [startTime, setStartTime] = useState<Date>(new Date(new Date().setHours(0,0,0,0)));
+  const [endTime, setEndTime] = useState<Date>(new Date(new Date().setHours(0,0,0,0)));
+  const [showStartTimePicker, setShowStartTimePicker] = useState(false);
+  const [showEndTimePicker, setShowEndTimePicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dateObj, setDateObj] = useState<Date | undefined>(undefined);
   const [showSportsDropdown, setShowSportsDropdown] = useState(false);
@@ -62,7 +62,7 @@ const FilterModal: React.FC<FilterModalProps> = ({ visible, onClose, onFilter })
         const pos = await Location.getCurrentPositionAsync({});
         setLocation({
           latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
+            longitude: pos.coords.longitude,
         });
         setUseCurrentLocation(true);
       } catch (err) {
@@ -75,18 +75,33 @@ const FilterModal: React.FC<FilterModalProps> = ({ visible, onClose, onFilter })
     }
   };
 
+  // Helper para formatar horário
+  const formatTime = (d: Date) => d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const isDefaultTime = (d: Date) => d.getHours() === 0 && d.getMinutes() === 0; // segundos/millis já zerados
+  const isTimeFilterActive = !(isDefaultTime(startTime) && isDefaultTime(endTime) && startTime.getTime() === endTime.getTime());
+
   // Função para montar o filtro e chamar o callback
   const handleFilterPress = () => {
-    const filter = {
-      latitude: useCurrentLocation && location ? location.latitude : null,
-      longitude: useCurrentLocation && location ? location.longitude : null,
-      maxDistanceKm: distance,
-      sports: selectedSports,
-      levels: [selectedLevel],
-      date: dateObj ? dateObj.toISOString().split('T')[0] : null,
-      startTime: `${startHour.padStart(2, '0')}:${startMinute.padStart(2, '0')}`,
-      endTime: `${endHour.padStart(2, '0')}:${endMinute.padStart(2, '0')}`,
-    };
+    const filter: any = {};
+
+    if (selectedSports.length > 0) filter.sports = selectedSports;
+    if (selectedLevel && selectedLevel !== 'Iniciante') filter.levels = [selectedLevel];
+    if (dateObj) filter.date = dateObj.toISOString().split('T')[0];
+    if (isTimeFilterActive) {
+      const sh = startTime.getHours().toString().padStart(2,'0');
+      const sm = startTime.getMinutes().toString().padStart(2,'0');
+      filter.startTime = `${sh}:${sm}`;
+      const eh = endTime.getHours().toString().padStart(2,'0');
+      const em = endTime.getMinutes().toString().padStart(2,'0');
+      filter.endTime = `${eh}:${em}`;
+    }
+    if (distance > 0 && location) {
+      filter.latitude = location.latitude;
+      filter.longitude = location.longitude;
+      filter.maxDistanceKm = distance;
+    }
+
+    console.log('Filtro enviado:', filter); // debug
     if (onFilter) onFilter(filter);
     onClose();
   };
@@ -95,17 +110,43 @@ const FilterModal: React.FC<FilterModalProps> = ({ visible, onClose, onFilter })
   const handleClearFilter = () => {
     setSelectedSports([]);
     setSelectedLevel('Iniciante');
-    setDistance(3.4);
+    setDistance(0);
     setEventDate('');
     setDateObj(undefined);
-    setStartHour('04');
-    setStartMinute('50');
-    setEndHour('04');
-    setEndMinute('50');
-    setUseCurrentLocation(false);
+    const reset = new Date(new Date().setHours(0,0,0,0));
+    setStartTime(reset);
+    setEndTime(reset);
     setLocation(null);
     if (onFilter) onFilter(null);
     onClose();
+  };
+
+  // Garantir que endTime não seja antes de startTime
+  const onChangeStartTime = (_: any, selected?: Date) => {
+    if (selected) {
+      const adjusted = new Date(selected);
+      // Normalizar segundos/milisegundos
+      adjusted.setSeconds(0,0);
+      setStartTime(adjusted);
+      if (endTime < adjusted) {
+        const newEnd = new Date(adjusted.getTime() + 60*60*1000); // +1h
+        newEnd.setSeconds(0,0);
+        setEndTime(newEnd);
+      }
+    }
+    if (Platform.OS !== 'ios') setShowStartTimePicker(false);
+  };
+  const onChangeEndTime = (_: any, selected?: Date) => {
+    if (selected) {
+      const adjusted = new Date(selected);
+      adjusted.setSeconds(0,0);
+      if (adjusted < startTime) {
+        setEndTime(startTime);
+      } else {
+        setEndTime(adjusted);
+      }
+    }
+    if (Platform.OS !== 'ios') setShowEndTimePicker(false);
   };
 
   return (
@@ -137,6 +178,111 @@ const FilterModal: React.FC<FilterModalProps> = ({ visible, onClose, onFilter })
               Sports Events
             </Text>
           </View>
+
+          {/* Chips de filtros ativos */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 10 }}>
+            {/* Esportes */}
+            {selectedSports.map((sport, index) => (
+              <View key={`chip-sport-${index}`} style={{
+                backgroundColor: '#E8F5E8',
+                borderRadius: 16,
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                marginRight: 8,
+                marginBottom: 8,
+                flexDirection: 'row',
+                alignItems: 'center'
+              }}>
+                <Text style={{ color: '#00D84A', marginRight: 4 }}>{sport}</Text>
+                <TouchableOpacity onPress={() => removeSport(sport)}>
+                  <Text style={{ color: '#00D84A' }}>×</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+            {/* Nível */}
+            {selectedLevel !== 'Iniciante' && (
+              <View style={{
+                backgroundColor: '#E8F5E8',
+                borderRadius: 16,
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                marginRight: 8,
+                marginBottom: 8,
+                flexDirection: 'row',
+                alignItems: 'center'
+              }}>
+                <Text style={{ color: '#00D84A', marginRight: 4 }}>{selectedLevel}</Text>
+                <TouchableOpacity onPress={() => setSelectedLevel('Iniciante')}>
+                  <Text style={{ color: '#00D84A' }}>×</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            {/* Data */}
+            {dateObj && (
+              <View style={{
+                backgroundColor: '#E8F5E8',
+                borderRadius: 16,
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                marginRight: 8,
+                marginBottom: 8,
+                flexDirection: 'row',
+                alignItems: 'center'
+              }}>
+                <Text style={{ color: '#00D84A', marginRight: 4 }}>
+                  {dateObj.toLocaleDateString('pt-BR')}
+                </Text>
+                <TouchableOpacity onPress={() => { setDateObj(undefined); setEventDate(''); }}>
+                  <Text style={{ color: '#00D84A' }}>×</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            {/* Distância */}
+            {distance > 0 && (
+              <View style={{
+                backgroundColor: '#E8F5E8',
+                borderRadius: 16,
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                marginRight: 8,
+                marginBottom: 8,
+                flexDirection: 'row',
+                alignItems: 'center'
+              }}>
+                <Text style={{ color: '#00D84A', marginRight: 4 }}>
+                  {distance.toFixed(1)} km
+                </Text>
+                <TouchableOpacity onPress={() => setDistance(0)}>
+                  <Text style={{ color: '#00D84A' }}>×</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            {/* Horário */}
+            {isTimeFilterActive && (
+              <View style={{
+                backgroundColor: '#E8F5E8',
+                borderRadius: 16,
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                marginRight: 8,
+                marginBottom: 8,
+                flexDirection: 'row',
+                alignItems: 'center'
+              }}>
+                <Text style={{ color: '#00D84A', marginRight: 4 }}>
+                  {`${formatTime(startTime)} - ${formatTime(endTime)}`}
+                </Text>
+                <TouchableOpacity onPress={() => {
+                  const reset = new Date(new Date().setHours(0,0,0,0));
+                  setStartTime(reset);
+                  setEndTime(reset);
+                }}>
+                  <Text style={{ color: '#00D84A' }}>×</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+          {/* Fim chips de filtros ativos */}
 
           <ScrollView showsVerticalScrollIndicator={false}>
             {/* Esporte Section */}
@@ -239,24 +385,28 @@ const FilterModal: React.FC<FilterModalProps> = ({ visible, onClose, onFilter })
             {/* Distance Section */}
             <View style={{ marginBottom: 20 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-                <Text style={{ fontSize: 18, fontWeight: '600', marginRight: 10 }}>
+                <Text style={{ fontSize: 18, fontWeight: '600', marginRight: 6 }}>
                   Distancia
                 </Text>
                 <TouchableOpacity
+                  onPress={() =>
+                    Alert.alert(
+                      'Filtro de Localização',
+                      'Se a distância for maior que 0, o filtro será feito com base na sua localização atual.'
+                    )
+                  }
                   style={{
-                    backgroundColor: useCurrentLocation ? '#00D84A' : '#F0F0F0',
-                    paddingHorizontal: 12,
-                    paddingVertical: 4,
-                    borderRadius: 12
+                    width: 22,
+                    height: 22,
+                    borderRadius: 11,
+                    backgroundColor: '#E0E0E0',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginLeft: 2
                   }}
-                  onPress={handleToggleLocation}
+                  activeOpacity={0.7}
                 >
-                  <Text style={{
-                    color: useCurrentLocation ? '#fff' : '#666',
-                    fontSize: 12
-                  }}>
-                    {useCurrentLocation ? 'Localização atual' : 'Localização atual'}
-                  </Text>
+                  <Text style={{ color: '#666', fontWeight: 'bold', fontSize: 14 }}>?</Text>
                 </TouchableOpacity>
               </View>
               <Text style={{ fontSize: 16, marginBottom: 10 }}>{distance.toFixed(1)} km</Text>
@@ -265,12 +415,27 @@ const FilterModal: React.FC<FilterModalProps> = ({ visible, onClose, onFilter })
                 minimumValue={0}
                 maximumValue={50}
                 value={distance}
-                onValueChange={setDistance}
+                onValueChange={async (value) => {
+                  setDistance(value);
+                  if (value > 0 && !location) {
+                    let { status } = await Location.requestForegroundPermissionsAsync();
+                    if (status === 'granted') {
+                      try {
+                        const pos = await Location.getCurrentPositionAsync({});
+                        setLocation({
+                          latitude: pos.coords.latitude,
+                          longitude: pos.coords.longitude,
+                        });
+                      } catch (err) {
+                        setLocation(null);
+                      }
+                    }
+                  }
+                }}
                 minimumTrackTintColor="#00D84A"
                 maximumTrackTintColor="#E0E0E0"
               />
             </View>
-
             {/* Calendar Section */}
             <View style={{ marginBottom: 20 }}>
               <Text style={{ fontSize: 18, fontWeight: '600', marginBottom: 10 }}>
@@ -306,73 +471,51 @@ const FilterModal: React.FC<FilterModalProps> = ({ visible, onClose, onFilter })
               <Text style={{ fontSize: 18, fontWeight: '600', marginBottom: 10 }}>
                 Selecione seus horarios
               </Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <TextInput
-                  style={{
-                    borderWidth: 1,
-                    borderColor: '#ddd',
-                    borderRadius: 8,
-                    padding: 12,
-                    width: 60,
-                    textAlign: 'center',
-                    marginRight: 8
-                  }}
-                  value={startHour}
-                  onChangeText={setStartHour}
-                  keyboardType="numeric"
-                  maxLength={2}
-                />
-                <Text style={{ marginRight: 8 }}>:</Text>
-                <TextInput
-                  style={{
-                    borderWidth: 1,
-                    borderColor: '#ddd',
-                    borderRadius: 8,
-                    padding: 12,
-                    width: 60,
-                    textAlign: 'center',
-                    marginRight: 20
-                  }}
-                  value={startMinute}
-                  onChangeText={setStartMinute}
-                  keyboardType="numeric"
-                  maxLength={2}
-                />
-                <TextInput
-                  style={{
-                    borderWidth: 1,
-                    borderColor: '#ddd',
-                    borderRadius: 8,
-                    padding: 12,
-                    width: 60,
-                    textAlign: 'center',
-                    marginRight: 8
-                  }}
-                  value={endHour}
-                  onChangeText={setEndHour}
-                  keyboardType="numeric"
-                  maxLength={2}
-                />
-                <Text style={{ marginRight: 8 }}>:</Text>
-                <TextInput
-                  style={{
-                    borderWidth: 1,
-                    borderColor: '#ddd',
-                    borderRadius: 8,
-                    padding: 12,
-                    width: 60,
-                    textAlign: 'center'
-                  }}
-                  value={endMinute}
-                  onChangeText={setEndMinute}
-                  keyboardType="numeric"
-                  maxLength={2}
-                />
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <View style={{ flex: 1, marginRight: 8 }}>
+                  <Text style={{ fontSize: 14, color: '#555', marginBottom: 6 }}>Início</Text>
+                  <TouchableOpacity
+                    onPress={() => { setShowStartTimePicker(true); setShowEndTimePicker(false); }}
+                    style={{ borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, alignItems: 'center' }}
+                  >
+                    <Text style={{ fontSize: 16 }}>{formatTime(startTime)}</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={{ flex: 1, marginLeft: 8 }}>
+                  <Text style={{ fontSize: 14, color: '#555', marginBottom: 6 }}>Fim</Text>
+                  <TouchableOpacity
+                    onPress={() => { setShowEndTimePicker(true); setShowStartTimePicker(false); }}
+                    style={{ borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, alignItems: 'center' }}
+                  >
+                    <Text style={{ fontSize: 16 }}>{formatTime(endTime)}</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
+              {(showStartTimePicker || showEndTimePicker) && (
+                <View style={{ marginTop: 16 }}>
+                  {showStartTimePicker && (
+                    <DateTimePicker
+                      value={startTime}
+                      mode="time"
+                      is24Hour
+                      display={Platform.OS === 'android' ? 'spinner' : 'spinner'}
+                      onChange={onChangeStartTime}
+                    />
+                  )}
+                  {showEndTimePicker && (
+                    <DateTimePicker
+                      value={endTime}
+                      mode="time"
+                      is24Hour
+                      display={Platform.OS === 'android' ? 'spinner' : 'spinner'}
+                      onChange={onChangeEndTime}
+                    />
+                  )}
+                </View>
+              )}
             </View>
-
             {/* Botão Limpar Filtro */}
-            {(selectedSports.length > 0 || eventDate || selectedLevel !== 'Iniciante' || distance !== 3.4) && (
+            {(selectedSports.length > 0 || eventDate || selectedLevel !== 'Iniciante' || distance !== 0 || isTimeFilterActive) && (
               <TouchableOpacity
                 style={{
                   backgroundColor: '#F0F0F0',
