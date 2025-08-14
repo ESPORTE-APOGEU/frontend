@@ -16,7 +16,7 @@ export default function SettingsMain() {
     const[notificationsPaused, setNotificationsPaused] = React.useState(false);
 
   return (
-    <View className='flex-1'>
+    <View className='flex-1 bg-[#F7FFED]'>
         <View className='p-6 mt-6'>
         <Text className='text-4xl font-bold p-4'>Configurações</Text>
             <SettingItem icon={<LocationIcon />} title="Localização"  onPress={() => console.log('Localização pressionada')} />

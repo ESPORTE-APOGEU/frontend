@@ -20,30 +20,30 @@ export default function SettingItem({ title, onPress, icon, switcherTitle, switc
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.25,
-            shadowRadius: 8,
+            shadowRadius: 4,
             elevation: 8, // Para Android
             backgroundColor: '#fff', // Necessário para sombra aparecer no iOS
-            borderRadius: 12,
+            borderRadius: 8,
             }}
         >
             <View
                 className="relative"
                 style={{
-                    height: switcherTitle ? 112 : 62, 
+                    height: switcherTitle ? 118 : 62,
                 }}
             >
                 {/* Bottom layer - green */}
                 <View
                     className="absolute top-1 left-0 right-0 bg-[#43A047] rounded-xl z-0"
                     style={{
-                        height: switcherTitle ? 112 : 62, 
+                        height: switcherTitle ? 118 : 62,
                     }}
                 />
                 {/* Top layer - white */}
                 <View
                     className="absolute top-0 left-0 right-0 bg-white rounded-xl flex-col justify-center z-10"
                     style={{
-                        height: switcherTitle ? 112 : 62, // Dynamic height
+                        height: switcherTitle ? 118 : 62, // Dynamic height
                     }}
                 >
                     <Pressable
