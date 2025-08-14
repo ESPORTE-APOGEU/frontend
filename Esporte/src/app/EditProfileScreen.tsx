@@ -103,7 +103,7 @@ const TOP_SPACING =
   Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F2F2F2", paddingTop: TOP_SPACING },
+  container: { flex: 1, backgroundColor: "#F7FFED", paddingTop: TOP_SPACING },
   header: {
     height: 72,
     flexDirection: "row",
@@ -158,18 +158,19 @@ const styles = StyleSheet.create({
     height: 0.5,
     backgroundColor: "rgba(0,0,0,0.5)",
     marginLeft: LABEL_WIDTH,
-    marginTop: 0,
+    marginTop: -10,
     marginBottom: 0,
   },
   footer: {
+    
     position: "absolute",
     left: 0,
     right: 0,
-    bottom: 16,
+    bottom: 28,
     paddingHorizontal: 16,
   },
   saveBtn: {
-    height: 52,
+    height: 40,
     borderRadius: 12,
     backgroundColor: "#10CF65",
     alignItems: "center",
