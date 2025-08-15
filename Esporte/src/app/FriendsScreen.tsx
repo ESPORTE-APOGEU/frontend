@@ -11,8 +11,9 @@ import {
 import SearchBar from "../components/SearchBar";
 import { FriendRequests, Request } from "../components/FriendRequests";
 import BottomNavigation from "../components/FutterBar";
-import { FriendSuggestions, Suggestion } from "../components/FriendSuggestions";
+import { FriendSuggestions } from "../components/FriendSuggestions";
 
+// Dados mock para solicitações
 const mockRequests: Request[] = [
   {
     id: "1",
@@ -30,59 +31,16 @@ const mockRequests: Request[] = [
   },
 ];
 
-const mockSuggestions: Suggestion[] = [
-  {
-    id: "1",
-    name: "Diego Alcantara",
-    avatar: "iconedocaba",
-    mutualCount: 4,
-    mutualAvatars: ["amigo1", "amigo2", "amigo3"],
-  },
-  {
-    id: "2",
-    name: "Diego Alcantara",
-    avatar: "iconedocaba",
-    mutualCount: 6,
-    mutualAvatars: ["amigo1", "amigo2", "amigo3"],
-  },
-  {
-    id: "3",
-    name: "Diego Alcantara",
-    avatar: "iconedocaba",
-    mutualCount: 4,
-    mutualAvatars: ["amigo1", "amigo2", "amigo3"],
-  },
-  {
-    id: "4",
-    name: "Diego Alcantara",
-    avatar: "iconedocaba",
-    mutualCount: 6,
-    mutualAvatars: ["amigo1", "amigo2", "amigo3"],
-  },
-  {
-    id: "5",
-    name: "Diego Alcantara",
-    avatar: "iconedocaba",
-    mutualCount: 6,
-    mutualAvatars: ["amigo1", "amigo2", "amigo3"],
-  },
-  {
-    id: "6",
-    name: "Diego Alcantara",
-    avatar: "iconedocaba",
-    mutualCount: 6,
-    mutualAvatars: ["amigo1", "amigo2", "amigo3"],
-  },
-];
-
 export default function FriendsScreen() {
   const [search, setSearch] = useState("");
+
+  // Filtrar solicitações e sugestões com base na pesquisa
   const filteredRequests = mockRequests.filter((r) =>
     r.name.toLowerCase().includes(search.toLowerCase())
   );
-  const filteredSuggestions = mockSuggestions.filter((s) =>
-    s.name.toLowerCase().includes(search.toLowerCase())
-  );
+
+  // Supondo que o usuário logado tenha ID 1 (substitua pela lógica de autenticação)
+  const loggedUserId = 1;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -103,7 +61,7 @@ export default function FriendsScreen() {
           <FriendRequests requests={filteredRequests} />
         </View>
         <View style={styles.section}>
-          <FriendSuggestions suggestions={filteredSuggestions} />
+          <FriendSuggestions loggedUserId={loggedUserId} />
         </View>
       </ScrollView>
       <View style={styles.bottomNav}>
@@ -127,4 +85,3 @@ const styles = StyleSheet.create({
   section: { marginTop: 24 },
   bottomNav: { position: "absolute", bottom: 0, left: 0, right: 0 },
 });
- 
