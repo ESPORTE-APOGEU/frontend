@@ -8,8 +8,8 @@ export type Request = {
   id: string;
   name: string;
   avatar: keyof typeof images;
-  city: string;
-  role: string;
+  mutualCount: number;
+  mutualAvatars?: (keyof typeof images)[];
 };
 
 interface Props {
@@ -18,48 +18,38 @@ interface Props {
 
 export function FriendRequests({ requests }: Props) {
   return (
-    <>
-      <Text className="text-black font-bold text-xl px-4 mb-4">
-        Solicitações de amizade
-      </Text>
+    <View className="px-4">
       {requests.map((r) => (
-        <View
-          key={r.id}
-          className="flex-row items-start rounded-lg px-4 py-3 mx-4 mb-3">
-          <Image
-            source={images[r.avatar]}
-            className="w-11 h-11 rounded-full mr-4"
-          />
-          <View className="flex-1">
-            <Text className="text-black font-medium text-base">{r.name}</Text>
-            <View className="flex-row items-center mt-0.5">
-              <Feather
-                name="map-pin"
-                size={12}
-                color="#424242"
-                className="mr-1"
-              />
-              <Text className="text-gray-600 text-[12px]">{r.city}</Text>
-            </View>
-            <View className="flex-row items-center mt-0.5">
-              <Feather
-                name="briefcase"
-                size={12}
-                color="#424242"
-                className="mr-1"
-              />
-              <Text className="text-gray-600 text-[12px]">{r.role}</Text>
+        <View key={r.id} className="flex-row items-center justify-between mb-6">
+          <View className="flex-row items-center flex-1 mr-4">
+            <Image
+              source={images[r.avatar]}
+              className="w-11 h-11 rounded-full mr-3"
+            />
+            <View className="flex-1">
+              <Text className="text-black text-[16px] font-semibold">
+                {r.name}
+              </Text>
+
+              <View className="flex-row items-center mt-1">
+                <Image source={images.amizade} className="w-4 h-4 mr-1" />
+                <Text className="text-[#292D32B3] text-[14px]">
+                  {r.mutualCount} amigos em comum
+                </Text>
+              </View>
             </View>
           </View>
-          <TouchableOpacity className="w-6 h-6 border border-gray-700 rounded-md mr-2 justify-center items-center">
-            <Feather name="x" size={10} color="#000000" />
-          </TouchableOpacity>
-          <TouchableOpacity className="w-6 h-6 border border-blue-400 rounded-md justify-center items-center">
-            <Feather name="check" size={10} color="#587DBD" />
-          </TouchableOpacity>
+
+          <View className="flex-row items-center">
+            <TouchableOpacity className="w-8 h-8 rounded-xl border border-[#10CF65] items-center justify-center mr-3">
+              <Feather name="x" size={12} color="#10CF65" />
+            </TouchableOpacity>
+            <TouchableOpacity className="w-8 h-8 rounded-xl border border-[#10CF65] items-center justify-center">
+              <Feather name="check" size={12} color="#10CF65" />
+            </TouchableOpacity>
+          </View>
         </View>
       ))}
-          
-    </>
+    </View>
   );
 }
