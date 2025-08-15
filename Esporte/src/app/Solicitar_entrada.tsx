@@ -29,7 +29,7 @@ export default function ConfirmarSenha() {
   useEffect(() => {
     const fetchEvent = async () => {
       try {
-        const response = await axios.get(`http://192.168.100.10:8080/api/v1/events/3`);
+        const response = await axios.get(`http://192.168.100.10:8080/api/v1/events/${eventId}`);
         console.log("Dados do evento:", response.data);
         setEventName(response.data.name);
         setEventDescription(response.data.description);

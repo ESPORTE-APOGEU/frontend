@@ -9,7 +9,7 @@ import {
   StatusBar, 
   TouchableOpacity 
 } from 'react-native';
-import axios from 'axios';
+import { fetchNotifications } from '../services/NotificationService'; // Importando o serviço
 
 // Importando os novos componentes
 import NotificationItem from '../components/NotificationItem';
@@ -18,18 +18,19 @@ import BottomNavigation from '../components/FutterBar';
 
 export default function Notificacoes() {
   const [notificationsData, setNotificationsData] = useState<any[]>([]);
-  const userId = 123; // substitua pelo ID do usuário logado
+  const userId = 123; // Substitua pelo ID do usuário logado
 
   useEffect(() => {
-    const fetch = async () => {
+    const loadNotifications = async () => {
       try {
-        const res = await axios.get(`http://192.168.100.10:8080/api/v1/users/${userId}/notifications`);
-        setNotificationsData(res.data);
-      } catch (e) {
-        console.error("Erro ao buscar notificações:", e);
+        const data = await fetchNotifications(userId); // Usando o serviço
+        setNotificationsData(data);
+      } catch (error) {
+        console.error("Erro ao buscar notificações:", error);
       }
     };
-    fetch();
+
+    loadNotifications();
   }, []);
 
   // Funções para lidar com as ações de aceitar/recusar
