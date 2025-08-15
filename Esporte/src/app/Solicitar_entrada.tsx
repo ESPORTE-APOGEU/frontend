@@ -4,6 +4,12 @@ import { router } from "expo-router";
 import { requestEventEntry } from "../services/EventEntryService";
 import axios from "axios";
 
+// Definição da interface para os participantes
+interface Participant {
+    name: string;
+    photo: string;
+}
+
 export default function ConfirmarSenha() {
   const [eventName, setEventName] = useState("");
   const [eventDescription, setEventDescription] = useState("");
@@ -16,16 +22,15 @@ export default function ConfirmarSenha() {
   const [eventLevel, setEventLevel] = useState("");
   const [eventGender, setEventGender] = useState("");
   const [price, setPrice] = useState("");
-  const [participants, setParticipants] = useState<{ name: string }[]>([
-    { name: "Diego Alcantara" }
-  ]);
+  // Altere aqui para um array vazio tipado
+  const [participants, setParticipants] = useState<Participant[]>([]);
   const eventId = 3; // substitua pelo ID do evento que você deseja buscar
 
   useEffect(() => {
     const fetchEvent = async () => {
       try {
-        const response = await axios.get(`http://192.168.100.10:8080/api/v1/events/${eventId}`);
-        // Integra os dados do evento
+        const response = await axios.get(`http://192.168.100.10:8080/api/v1/events/3`);
+        console.log("Dados do evento:", response.data);
         setEventName(response.data.name);
         setEventDescription(response.data.description);
         setOrganizer(response.data.organizerPhoto);
@@ -37,8 +42,10 @@ export default function ConfirmarSenha() {
         setEventLevel(response.data.level);
         setEventGender(response.data.gender);
         setPrice(response.data.price);
+        console.log(response.data);
       } catch (error) {
         console.error("Erro ao buscar evento:", error);
+        Alert.alert("Erro", "Não foi possível carregar os detalhes do evento.");
       }
     };
     fetchEvent();
@@ -117,10 +124,10 @@ export default function ConfirmarSenha() {
             </View>
             <View className="flex-col">
               <Text className="text-[16px] font-bold text-black">
-                {eventDate || "Domingo, 15 de maio , 2025"}
+                {eventDate }
               </Text>
               <Text className="text-[14px] text-black">
-                {eventStartTime && eventEndTime ? `${eventStartTime} - ${eventEndTime}` : "16:30 - 18:00"} (90 min)
+                {eventStartTime && eventEndTime ? `${eventStartTime} - ${eventEndTime}` : ""}
               </Text>
             </View>
           </View>
@@ -141,10 +148,10 @@ export default function ConfirmarSenha() {
             </View>
             <View className="flex-col">
               <Text className="text-[16px] font-bold text-black">
-                {eventLocation || "Ibirapuera Park - Vila Mariana"} &gt;
+                {eventLocation}
               </Text>
               <Text className="text-[14px] text-black">
-                Valor de entrada {price ? `$${price}` : "$40"}
+                {price}
               </Text>
             </View>
           </View>
@@ -165,7 +172,7 @@ export default function ConfirmarSenha() {
             </View>
             <View className="flex-col">
               <Text className="text-[16px] font-bold top-[8px] text-black">
-                {eventLevel || "Iniciante"}
+                {eventLevel}
               </Text>
               <Text className="text-[14px] text-black">
                 {/* Adicione informação extra se necessário */}
@@ -189,7 +196,7 @@ export default function ConfirmarSenha() {
             </View>
             <View className="flex-col">
               <Text className="text-[16px] font-bold top-[-1px] text-black">
-                {eventGender === "F" ? "Feminino" : "Masculino"}
+                {eventGender}
               </Text>
             </View>
           </View>
@@ -222,7 +229,7 @@ export default function ConfirmarSenha() {
           <View className="flex-row items-center ml-[30px] top-[50px]" key={index}>
             <View className="relative w-[40px] h-[38px] mr-4">
               <Image
-                source={require("../assets/images/participante.png")}
+                source={participant.photo ? { uri: participant.photo } : require("../assets/images/participante.png")}
                 className="w-[40px] h-[38px]"
                 resizeMode="cover"
               />
@@ -247,4 +254,4 @@ export default function ConfirmarSenha() {
       </TouchableOpacity>
     </View>
   );
-} 
+}
