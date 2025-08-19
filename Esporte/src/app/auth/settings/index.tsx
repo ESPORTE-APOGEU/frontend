@@ -19,7 +19,11 @@ export default function SettingsMain() {
     <View className='flex-1 bg-[#F7FFED]'>
         <View className='p-6 mt-6'>
         <Text className='text-4xl font-bold p-4'>Configurações</Text>
-            <SettingItem icon={<LocationIcon />} title="Localização"  onPress={() => console.log('Localização pressionada')} />
+            <SettingItem 
+                icon={<LocationIcon />} 
+                title="Localização"  
+                onPress={() => router.push('/auth/settings/Andress')} 
+            />
             <SettingItem 
                 icon={<NotificationIcon />} 
                 title="Notificações" 

@@ -13,6 +13,7 @@ import { Img1 } from "../components/Preview/Img1";
 import { Img2 } from "../components/Preview/Img2";
 import { Img3 } from "../components/Preview/Img3";
 import { Img4 } from "../components/Preview/Img4";
+import { router } from "expo-router";
 
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -65,7 +66,7 @@ export default function Preview() {
         if (currentIndex < totalSlides - 1) {
             animateSlide('left');
         } else {
-            Alert.alert("Fim da apresentação", "Você chegou ao último slide.");
+            router.push('/auth/home');
         }
     };
     return (
