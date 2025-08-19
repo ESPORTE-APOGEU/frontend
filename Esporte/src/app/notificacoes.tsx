@@ -7,23 +7,37 @@ import {
   Text, 
   ScrollView, 
   StatusBar, 
-  TouchableOpacity 
+  TouchableOpacity, 
+  ImageSourcePropType
 } from 'react-native';
-import { fetchNotifications } from '../services/NotificationService'; // Importando o serviço
+import { getNotifications } from '../services/NotificationService';
 
 // Importando os novos componentes
 import NotificationItem from '../components/NotificationItem';
 import ParticipationRequest from '../components/ParticipationRequest';
 import BottomNavigation from '../components/FutterBar';
 
+interface Notification {
+    tag: { text: string; icon: "whatsapp" | "calendar" | "info"; } | undefined;
+    iconName: "whatsapp" | "calendar" | "info";
+    userName: string;
+    userImage: ImageSourcePropType;
+    type: string;
+    id: number;
+    title: string;
+    description: string;
+    timestamp: string;
+    // adicione outros campos conforme necessário
+}
+
 export default function Notificacoes() {
-  const [notificationsData, setNotificationsData] = useState<any[]>([]);
-  const userId = 123; // Substitua pelo ID do usuário logado
+  const [notificationsData, setNotificationsData] = useState<Notification[]>([]);
+  const userId = 35; // Substitua pelo ID do usuário logado
 
   useEffect(() => {
     const loadNotifications = async () => {
       try {
-        const data = await fetchNotifications(userId); // Usando o serviço
+        const data = await getNotifications(userId); // Usando o serviço
         setNotificationsData(data);
       } catch (error) {
         console.error("Erro ao buscar notificações:", error);

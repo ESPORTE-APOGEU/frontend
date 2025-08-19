@@ -10,6 +10,10 @@ interface Participant {
     photo: string;
 }
 
+const API = process.env.EXPO_PUBLIC_API_BASE_URL || "http://192.168.100.10:8080";
+const eventId = 37; // use o MESMO ID do POST
+const userId = 35;  // id real do participante
+
 export default function ConfirmarSenha() {
   const [eventName, setEventName] = useState("");
   const [eventDescription, setEventDescription] = useState("");
@@ -24,50 +28,44 @@ export default function ConfirmarSenha() {
   const [price, setPrice] = useState("");
   // Altere aqui para um array vazio tipado
   const [participants, setParticipants] = useState<Participant[]>([]);
-  const eventId = 3; // substitua pelo ID do evento que você deseja buscar
 
   useEffect(() => {
     const fetchEvent = async () => {
-      try {
-        const response = await axios.get(`http://192.168.100.10:8080/api/v1/events/${eventId}`);
-        console.log("Dados do evento:", response.data);
-        setEventName(response.data.name);
-        setEventDescription(response.data.description);
-        setOrganizer(response.data.organizerPhoto);
-        setOrganizerName(response.data.organizerName);
-        setEventLocation(response.data.location);
-        setEventDate(response.data.date);
-        setEventStartTime(response.data.startTime);
-        setEventEndTime(response.data.endTime);
-        setEventLevel(response.data.level);
-        setEventGender(response.data.gender);
-        setPrice(response.data.price);
-        console.log(response.data);
-      } catch (error) {
-        console.error("Erro ao buscar evento:", error);
-        Alert.alert("Erro", "Não foi possível carregar os detalhes do evento.");
-      }
+      const { data } = await axios.get(`${API}/api/v1/events/${eventId}`);
+      console.log("Dados do evento:", data);
+      setEventName(data.name);
+      setEventDescription(data.description);
+      setOrganizer(data.organizerPhoto);
+      setOrganizerName(data.organizerName);
+      setEventLocation(data.location);
+      setEventDate(data.date);
+      setEventStartTime(data.startTime);
+      setEventEndTime(data.endTime);
+      setEventLevel(data.level);
+      setEventGender(data.gender);
+      setPrice(data.price);
+      console.log(data);
     };
     fetchEvent();
   }, []);
 
   useEffect(() => {
     const fetchParticipants = async () => {
-      try {
-        const response = await axios.get(`http://192.168.100.10:8080/api/v1/events/${eventId}/participants`);
-        setParticipants(response.data);
-      } catch (error) {
-        console.error("Erro ao buscar participantes:", error);
-      }
+      const { data } = await axios.get(`${API}/api/v1/events/${eventId}/participants`);
+      setParticipants(data);
     };
     fetchParticipants();
   }, []);
 
   const handleSolicitarEntrada = async () => {
     try {
-      const data = await requestEventEntry(eventId, 123); // substitua os valores conforme necessário
+      const data = await requestEventEntry(eventId, userId);
       Alert.alert("Sucesso", data.message);
-      router.push("/auth");
+      // Recarrega participantes antes de sair
+      const { data: parts } = await axios.get(`${API}/api/v1/events/${eventId}/participants`);
+      setParticipants(parts);
+      // opcional: comentar o redirect para ver a atualização
+      // router.push("/auth");
     } catch (error: any) {
       Alert.alert("Erro", error.message);
     }
