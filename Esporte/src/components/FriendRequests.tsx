@@ -3,6 +3,7 @@ import React from "react";
 import { View, Text, Image, TouchableOpacity } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { images } from "../assets/images";
+import { useNavigation } from "@react-navigation/native";
 
 export type Request = {
   id: string;
@@ -17,6 +18,8 @@ interface Props {
 }
 
 export function FriendRequests({ requests }: Props) {
+  const navigation = useNavigation<any>();
+
   return (
     <View className="px-4">
       {requests.map((r) => (
@@ -31,12 +34,21 @@ export function FriendRequests({ requests }: Props) {
                 {r.name}
               </Text>
 
-              <View className="flex-row items-center mt-1">
+              <TouchableOpacity
+                className="flex-row items-center mt-1"
+                onPress={() =>
+                  navigation.navigate("../app/mutualFriendsScreen", {
+                    id: r.id,
+                    name: r.name,
+                    mutualCount: r.mutualCount,
+                    mutualAvatars: r.mutualAvatars ?? [],
+                  })
+                }>
                 <Image source={images.amizade} className="w-4 h-4 mr-1" />
                 <Text className="text-[#292D32B3] text-[14px]">
                   {r.mutualCount} amigos em comum
                 </Text>
-              </View>
+              </TouchableOpacity>
             </View>
           </View>
 

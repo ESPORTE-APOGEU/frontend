@@ -1,4 +1,4 @@
-
+// src/app/_layout.tsx
 import "../styles/global.css";
 import { Slot } from "expo-router";
 import { useFonts } from "expo-font";
@@ -10,15 +10,8 @@ import { ClerkProvider } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
-    Poppins_400Regular,
-    Poppins_700Bold,
-  });
-
-  if (!fontsLoaded) {
-    return null; // ou um splash screen
-  }
-
+  const [fontsLoaded] = useFonts({ Poppins_400Regular, Poppins_700Bold });
+  if (!fontsLoaded) return null;
   return (
     <ClerkProvider tokenCache={tokenCache}>
       <Slot />

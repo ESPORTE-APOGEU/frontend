@@ -2,6 +2,7 @@
 import React from "react";
 import { View, Text, Image, TouchableOpacity } from "react-native";
 import { images } from "../assets/images";
+import { useNavigation } from "@react-navigation/native";
 
 export type Suggestion = {
   id: string;
@@ -16,6 +17,8 @@ interface Props {
 }
 
 export function FriendSuggestions({ suggestions }: Props) {
+  const navigation = useNavigation<any>();
+
   return (
     <View>
       <Text className="text-black font-extrabold text-[24px] px-4 mb-4">
@@ -25,12 +28,16 @@ export function FriendSuggestions({ suggestions }: Props) {
       {suggestions.map((s) => (
         <View
           key={s.id}
-          className="flex-row items-center rounded-lg px-4 py-3 mx-4 mb-3"
-        >
-          <Image
-            source={images[s.avatar]}
-            className="w-8 h-8 rounded-full mr-4"
-          />
+          className="flex-row items-center rounded-lg px-4 py-3 mx-4 mb-3">
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate("../app/MutualFriendsScreen", { id: s.id })
+            }>
+            <Image
+              source={images[s.avatar]}
+              className="w-8 h-8 rounded-full mr-4"
+            />
+          </TouchableOpacity>
 
           <Text className="flex-1 text-black font-semibold text-[16px]">
             {s.name}
@@ -38,11 +45,18 @@ export function FriendSuggestions({ suggestions }: Props) {
 
           <View className="flex-row items-center mr-2">
             {(s.mutualAvatars ?? []).slice(0, 3).map((m, i) => (
-              <Image
-                key={i}
-                source={images[m]}
-                className={`w-6 h-6 rounded-full ${i ? "-ml-2" : ""}`}
-              />
+              <TouchableOpacity
+                key={`${s.id}-${m}-${i}`}
+                onPress={() =>
+                  navigation.navigate("../app/MutualFriendsScreenr", {
+                    avatar: m,
+                  })
+                }>
+                <Image
+                  source={images[m]}
+                  className={`w-6 h-6 rounded-full ${i ? "-ml-2" : ""}`}
+                />
+              </TouchableOpacity>
             ))}
           </View>
 
