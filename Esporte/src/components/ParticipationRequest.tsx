@@ -1,44 +1,60 @@
 // Em: components/ParticipationRequest.js
 
-import React from 'react';
-import { View, Text, Image, TouchableOpacity, ImageSourcePropType } from 'react-native';
+import React from "react";
+import { View, Text, Image, TouchableOpacity } from "react-native";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/pt-br";
 
-// Ícones de ação (pode substituir por ícones de uma biblioteca)
-const CheckIcon = () => <Text className="text-green-500 text-2xl">✓</Text>;
-const RedCloseIcon = () => <Text className="text-red-500 text-2xl">✕</Text>;
+dayjs.extend(relativeTime);
+dayjs.locale("pt-br");
 
-interface ParticipationRequestProps {
-  userImage: ImageSourcePropType;
+interface Props {
+  id: number;
+  userImage: string;
   userName: string;
   timestamp: string;
-  onAccept: () => void;
-  onDecline: () => void;
+  onAccept: (id: number) => void;
+  onDecline: (id: number) => void;
 }
 
-export default function ParticipationRequest({ userImage, userName, timestamp, onAccept, onDecline }: ParticipationRequestProps): React.ReactElement {
+export default function ParticipationRequest({
+  id,
+  userImage,
+  userName,
+  timestamp,
+  onAccept,
+  onDecline,
+}: Props) {
   return (
-    <View className="flex-row items-center mb-6">
-      {/* Imagem do Perfil */}
-      <Image 
-        source={userImage}
-        className="w-12 h-12 rounded-full mr-4"
+    <View className="flex-row items-center justify-between bg-white p-4 mb-2 rounded-lg shadow">
+      <Image
+        source={
+          userImage
+            ? { uri: userImage }
+            : require("../assets/images/participante.png")
+        }
+        className="w-12 h-12 rounded-full"
       />
-      
-      {/* Conteúdo */}
-      <View className="flex-1">
-        <Text className="text-base text-black">
-            <Text className="font-bold">{userName}</Text> quer participar do evento
+      <View className="flex-1 ml-4">
+        <Text className="text-sm text-gray-500">
+          Pedido de participação no evento
         </Text>
-        <Text className="text-sm text-gray-500">{timestamp}</Text>
+        <Text className="text-base font-bold">
+          {userName} quer participar do evento
+        </Text>
+        <Text className="text-xs text-gray-400">
+          {dayjs(timestamp).fromNow()}
+        </Text>
       </View>
-      
-      {/* Ações */}
-      <TouchableOpacity onPress={onAccept} className="p-2">
-        <CheckIcon />
-      </TouchableOpacity>
-      <TouchableOpacity onPress={onDecline} className="p-2">
-        <RedCloseIcon />
-      </TouchableOpacity>
+      <View className="flex-row space-x-2">
+        <TouchableOpacity onPress={() => onAccept(id)}>
+          <Text className="text-green-500 text-2xl">✅</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => onDecline(id)}>
+          <Text className="text-red-500 text-2xl">❌</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
