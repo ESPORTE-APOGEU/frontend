@@ -1,35 +1,21 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { View, Text, Image, TouchableOpacity } from "react-native";
 import { images } from "../assets/images";
-import { getFriendSuggestions } from "../services/FriendSuggestionService";
 
 export type Suggestion = {
   id: string;
   name: string;
   avatar: keyof typeof images;
   mutualCount: number;
-  mutualAvatars: (keyof typeof images)[];
+  mutualAvatars?: (keyof typeof images)[];
 };
 
 interface Props {
-  loggedUserId: number;
+  suggestions: Suggestion[];
+  onConnect: (receiverId: number) => void;
 }
 
-export function FriendSuggestions({ loggedUserId }: Props) {
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-
-  useEffect(() => {
-    const fetchSuggestions = async () => {
-      try {
-        const data = await getFriendSuggestions(loggedUserId);
-        setSuggestions(data);
-      } catch (error) {
-        console.error("Erro ao buscar sugestões:", error);
-      }
-    };
-    fetchSuggestions();
-  }, [loggedUserId]);
-
+export function FriendSuggestions({ suggestions, onConnect }: Props) {
   return (
     <>
       <Text className="text-black font-bold text-xl px-4 mb-4">
@@ -44,15 +30,11 @@ export function FriendSuggestions({ loggedUserId }: Props) {
             source={images[s.avatar]}
             className="w-8 h-8 rounded-full mr-4"
           />
-          <View className="flex-1">
-            <Text className="text-black font-medium text-base">{s.name}</Text>
-            <Text className="text-gray-600 text-[12px]">
-              {s.mutualCount} amigos em comum
-            </Text>
-          </View>
-          {/* Exibir as fotos dos amigos em comum */}
+          <Text className="flex-1 text-black font-medium text-base">
+            {s.name}
+          </Text>
           <View className="flex-row items-center mr-1">
-            {s.mutualAvatars.slice(0, 3).map((m, i) => (
+            {(s.mutualAvatars ?? []).slice(0, 3).map((m, i) => (
               <Image
                 key={i}
                 source={images[m]}
@@ -60,6 +42,13 @@ export function FriendSuggestions({ loggedUserId }: Props) {
               />
             ))}
           </View>
+          <Text className="text-black text-base mr-2">{s.mutualCount}</Text>
+          <TouchableOpacity
+            className="w-24 h-7 bg-green-500 rounded-lg justify-center items-center"
+            onPress={() => onConnect(Number(s.id))}
+          >
+            <Text className="text-white font-bold text-[12px]">Connect</Text>
+          </TouchableOpacity>
         </View>
       ))}
     </>

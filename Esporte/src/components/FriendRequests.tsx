@@ -1,43 +1,25 @@
 // src/components/FriendRequests.tsx
-import React, { useEffect, useState } from "react";
-import { View, Text, Image, TouchableOpacity, Alert } from "react-native";
+import React, { ReactNode } from "react";
+import { View, Text, Image, TouchableOpacity } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { FontAwesome5 } from "@expo/vector-icons";
 import { images } from "../assets/images";
-import { getPendingRequests, respondToRequest } from "../services/FriendRequestService";
 
 export type Request = {
+  mutualCount: ReactNode;
   id: string;
   name: string;
   avatar: keyof typeof images;
-  city: string;
-  role: string;
+  // Removemos city e role
 };
 
 interface Props {
-  receiverId: number;
+  requests: Request[];
+  onAccept: (requestId: number) => void;
+  onReject: (requestId: number) => void;
 }
 
-export function FriendRequests({ receiverId }: Props) {
-  const [requests, setRequests] = useState<Request[]>([]);
-
-  useEffect(() => {
-    const fetchRequests = async () => {
-      const data = await getPendingRequests(receiverId);
-      setRequests(data);
-    };
-    fetchRequests();
-  }, [receiverId]);
-
-  const handleResponse = async (requestId: number, status: "ACCEPTED" | "REJECTED") => {
-    try {
-      await respondToRequest(requestId, status);
-      Alert.alert("Sucesso", `Solicitação ${status === "ACCEPTED" ? "aceita" : "rejeitada"}!`);
-      setRequests((prev) => prev.filter((req) => req.id !== requestId));
-    } catch (error) {
-      Alert.alert("Erro", "Não foi possível responder à solicitação.");
-    }
-  };
-
+export function FriendRequests({ requests, onAccept, onReject }: Props) {
   return (
     <>
       <Text className="text-black font-bold text-xl px-4 mb-4">
@@ -46,36 +28,38 @@ export function FriendRequests({ receiverId }: Props) {
       {requests.map((r) => (
         <View
           key={r.id}
-          className="flex-row items-start rounded-lg px-4 py-3 mx-4 mb-3">
+          className="flex-row items-start rounded-lg px-4 py-3 mx-4 mb-3"
+        >
           <Image
             source={images[r.avatar]}
             className="w-11 h-11 rounded-full mr-4"
           />
           <View className="flex-1">
-            <Text className="text-black font-medium text-base">{r.name}</Text>
-            <View className="flex-row items-center mt-0.5">
-              <Feather
-                name="map-pin"
-                size={12}
-                color="#424242"
-                className="mr-1"
+            <Text className="text-black font-medium text-base">
+              {r.name}
+            </Text>
+            <View className="flex-row items-center mt-1">
+              <FontAwesome5 
+                name="user-friends" 
+                size={12} 
+                color="#424242" 
+                className="mr-1" 
               />
-              <Text className="text-gray-600 text-[12px]">{r.city}</Text>
-            </View>
-            <View className="flex-row items-center mt-0.5">
-              <Feather
-                name="briefcase"
-                size={12}
-                color="#424242"
-                className="mr-1"
-              />
-              <Text className="text-gray-600 text-[12px]">{r.role}</Text>
+              <Text className="text-gray-600 text-[12px]">
+                {r.mutualCount} amigos em comum
+              </Text>
             </View>
           </View>
-          <TouchableOpacity onPress={() => handleResponse(r.id, "REJECTED")} className="w-6 h-6 border border-gray-700 rounded-full mr-2 justify-center items-center">
+          <TouchableOpacity
+            className="w-6 h-6 border border-gray-700 rounded-full mr-2 justify-center items-center"
+            onPress={() => onReject(Number(r.id))}
+          >
             <Feather name="x" size={10} color="#000000" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleResponse(r.id, "ACCEPTED")} className="w-6 h-6 border border-blue-400 rounded-full justify-center items-center">
+          <TouchableOpacity
+            className="w-6 h-6 border border-blue-400 rounded-full justify-center items-center"
+            onPress={() => onAccept(Number(r.id))}
+          >
             <Feather name="check" size={10} color="#587DBD" />
           </TouchableOpacity>
         </View>
