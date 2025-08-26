@@ -1,60 +1,57 @@
-// Em: components/ParticipationRequest.js
+// components/ParticipationRequest.tsx
 
-import React from "react";
-import { View, Text, Image, TouchableOpacity } from "react-native";
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
-import "dayjs/locale/pt-br";
+import { View, Text, Image, TouchableOpacity, ImageSourcePropType } from 'react-native';
 
-dayjs.extend(relativeTime);
-dayjs.locale("pt-br");
-
-interface Props {
-  id: number;
-  userImage: string;
+interface ParticipationRequestProps {
+  userImage: ImageSourcePropType;
   userName: string;
   timestamp: string;
-  onAccept: (id: number) => void;
-  onDecline: (id: number) => void;
+  entryId?: number; // id do event-entry retornado pelo backend
+  onAccept: (entryId: number) => void;
+  onDecline: (entryId: number) => void;
 }
 
-export default function ParticipationRequest({
-  id,
+const ParticipationRequest: React.FC<ParticipationRequestProps> = ({
   userImage,
   userName,
   timestamp,
   onAccept,
   onDecline,
-}: Props) {
+  entryId,
+}: ParticipationRequestProps) => {
   return (
-    <View className="flex-row items-center justify-between bg-white p-4 mb-2 rounded-lg shadow">
-      <Image
-        source={
-          userImage
-            ? { uri: userImage }
-            : require("../assets/images/participante.png")
-        }
-        className="w-12 h-12 rounded-full"
-      />
-      <View className="flex-1 ml-4">
-        <Text className="text-sm text-gray-500">
-          Pedido de participação no evento
-        </Text>
-        <Text className="text-base font-bold">
-          {userName} quer participar do evento
-        </Text>
-        <Text className="text-xs text-gray-400">
-          {dayjs(timestamp).fromNow()}
-        </Text>
+    // Container principal:
+    // - flex-row: alinha os filhos horizontalmente.
+    // - items-center: centraliza os filhos verticalmente.
+    // - justify-between: empurra o bloco de usuário para a esquerda e os ícones para a direita.
+    // - p-2 mb-2: adiciona um pouco de preenchimento e margem.
+    <View className="flex-row items-center justify-between p-2 mb-2">
+
+      {/* Bloco de Informações do Usuário (Imagem + Textos) */}
+      <View className="flex-row items-center -left-3">
+        <Image source={userImage} className="w-14 h-14 rounded-full" />
+        <View className="ml-3">
+          <Text className="text-lg font-bold text-black">{userName}</Text>
+          <Text className="text-base text-gray-600">quer participar do evento</Text>
+          <Text className="text-sm text-gray-500">{timestamp}</Text>
+        </View>
       </View>
-      <View className="flex-row space-x-2">
-        <TouchableOpacity onPress={() => onAccept(id)}>
-          <Text className="text-green-500 text-2xl">✅</Text>
+
+      {/* Bloco de Ações (Ícones) */}
+      <View className="flex-row items-center">
+        {/* Ícone de Aceitar */}
+        <TouchableOpacity onPress={() => onAccept(entryId ?? -1)} className="p-2">
+          <Text className="text-green-500 text-2xl font-bold">✓</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => onDecline(id)}>
-          <Text className="text-red-500 text-2xl">❌</Text>
+
+        {/* Ícone de Recusar */}
+        <TouchableOpacity onPress={() => onDecline(entryId ?? -1)} className="p-2 ml-2">
+          <Text className="text-red-500 text-3xl font-bold">×</Text>
         </TouchableOpacity>
       </View>
+
     </View>
   );
-}
+};
+
+export default ParticipationRequest;
