@@ -40,17 +40,7 @@ export default function NotificationItem({
         
         {/* Rodapé da Notificação */}
         <View className="flex-row justify-between items-center mt-2">
-            <Text className="text-sm text-gray-500">{timestamp}</Text>
-            
-            {/* Tag opcional (só aparece se a prop 'tag' for passada) */}
-            {tag && (
-                <View className="flex-row items-center bg-gray-200 rounded-full px-3 py-1">
-                    <Text className="text-xs text-gray-700 mr-1">{tag.text}</Text>
-                    {tag.icon && (
-                        <Image source={iconMap[tag.icon as keyof typeof iconMap]} className="w-3 h-3" />
-                    )}
-                </View>
-            )}
+            <Text className="text-sm italic text-blue-500">{timestamp}</Text>
         </View>
       </View>
     </View>
