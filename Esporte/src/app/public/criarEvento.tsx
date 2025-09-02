@@ -1,250 +1,160 @@
+// Caminho do arquivo: src/app/public/criarEvento.tsx
 import React, { useState } from "react";
-import {
-  ScrollView,
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Platform,
-} from "react-native";
-import { Picker } from "@react-native-picker/picker";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import { ScrollView, View, Text } from "react-native";
+import { FontAwesome } from "@expo/vector-icons";
+import { ScreenHeader } from "../../components/ScreenHeader";
+import { ImageUploader } from "../../components/ImageUploader";
+import { FormInput } from "../../components/FormInput";
+import { EventDateTimePicker } from "../../components/EventDateTimePicker";
+import { OptionSelector } from "../../components/OptionSelector";
+import { ParticipantCounter } from "../../components/ParticipantCounter";
+import { DescriptionInput } from "../../components/DescriptionInput";
+import { SubmitButton } from "../../components/SubmitButton";
+import { PrivacyToggle } from "../../components/PrivacyToggle";
+
+const sportOptions = [
+  "Futebol",
+  "Vôlei",
+  "Basquete",
+  "Yoga",
+  "Corrida",
+  "Tênis",
+  "Pedal",
+  "Beach Tennis",
+  "Hot Yoga",
+  "Futevôlei",
+  "Vôlei de praia",
+  "Pilates",
+  "Paddle",
+  "Pickleball",
+];
+const levelOptions = [
+  "Iniciante",
+  "Intermediario",
+  "Avançado",
+  "Semi-profissional",
+];
+const genderOptions = ["Masculino", "Feminino", "Mix"];
 
 export default function CreateEventScreen() {
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
-  const [sport, setSport] = useState("");
-  const [level, setLevel] = useState("");
-  const [gender, setGender] = useState("");
+  const [price, setPrice] = useState("120");
+  const [whats, setWhats] = useState("");
   const [date, setDate] = useState(new Date());
-  const [startTime, setStartTime] = useState(new Date());
-  const [endTime, setEndTime] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showEndPicker, setShowEndPicker] = useState(false);
-  const [price, setPrice] = useState("");
+  const [startTime, setStartTime] = useState(new Date(0, 0, 0, 16, 30));
+  const [endTime, setEndTime] = useState(new Date(0, 0, 0, 16, 30));
+  const [sports, setSports] = useState<string[]>(["Vôlei"]);
+  const [level, setLevel] = useState("Iniciante");
+  const [gender, setGender] = useState("Masculino");
+  const [minPart, setMinPart] = useState(6);
+  const [maxPart, setMaxPart] = useState(6);
   const [description, setDescription] = useState("");
+  const [isPrivate, setIsPrivate] = useState(false);
+
+  const toggleSport = (s: string) => {
+    setSports((prev) =>
+      prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]
+    );
+  };
+
+  const handleCreateEvent = () => {
+    console.log("Evento criado com os dados:", {
+      name,
+      location,
+      price,
+      date,
+      startTime,
+      endTime,
+      sports,
+      level,
+      gender,
+      minPart,
+      maxPart,
+      description,
+      isPrivate,
+    });
+  };
 
   return (
     <ScrollView
-      className="bg-gray-100 flex-1 px-7 pt-16"
-      contentContainerStyle={{ paddingBottom: 70 }}
-      >
-      <Text className="text-black font-bold text-3xl mb-6">Create Event</Text>
-      <TouchableOpacity className="w-full h-28 bg-white bg-opacity-50 border border-gray-400 rounded-lg justify-center items-center mb-6 shadow">
-        <Text className="text-gray-500">put the event image here</Text>
-      </TouchableOpacity>
+      className="flex-1 bg-[#F7FFED]"
+      contentContainerStyle={{ paddingBottom: 40 }}>
+      <View className="px-7 pt-14">
+        <ScreenHeader title="Criar evento" />
+        <ImageUploader />
 
-      <TextInput
-        placeholder="Nome do Evento"
-        placeholderTextColor="#000"
-        value={name}
-        onChangeText={setName}
-        className="w-full h-12 bg-white bg-opacity-50 border-b-2 border-green-700 rounded-lg px-4 mb- shadow"
-      />
+        <FormInput
+          value={name}
+          onChangeText={setName}
+          placeholder="Nome do evento"
+        />
+        <FormInput
+          value={location}
+          onChangeText={setLocation}
+          placeholder="Localização"
+        />
+        <FormInput
+          value={price}
+          onChangeText={(t) => setPrice(t.replace(/\D/g, ""))}
+          placeholder="Valor total do aluguel"
+          keyboardType="numeric">
+          <Text className="text-[#212121] ml-2">R$ {price || "0"}</Text>
+        </FormInput>
+        <FormInput
+          value={whats}
+          onChangeText={setWhats}
+          placeholder="WhatsApp link (opcional)"
+          autoCapitalize="none">
+          <FontAwesome name="whatsapp" size={22} color="#10CF65" />
+        </FormInput>
 
-      <TextInput
-        placeholder="Localização"
-        placeholderTextColor="#000"
-        value={location}
-        onChangeText={setLocation}
-        className="w-full h-12 bg-white bg-opacity-50 border-b-2 border-green-700 rounded-lg px-4 mb-0 shadow"
-      />
+        <PrivacyToggle value={isPrivate} onValueChange={setIsPrivate} />
 
-      <View className="mb-0">
-        <View className="w-full h-12 bg-white bg-opacity-50 border-b-2 border-green-700 rounded-lg overflow-hidden shadow">
-          <Picker
-            selectedValue={sport}
-            onValueChange={setSport}
-            className="h-12">
-            <Picker.Item label="Esporte" value="" enabled={false} />
-            <Picker.Item label="Futebol" value="futebol" />
-            <Picker.Item label="Basquete" value="basquete" />
-            <Picker.Item label="Vôlei" value="volei" />
-          </Picker>
-        </View>
+        <EventDateTimePicker
+          date={date}
+          setDate={setDate}
+          startTime={startTime}
+          setStartTime={setStartTime}
+          endTime={endTime}
+          setEndTime={setEndTime}
+        />
+
+        <OptionSelector
+          title="Modalidade"
+          options={sportOptions}
+          selectedValues={sports}
+          onSelect={toggleSport}
+          isMultiSelect
+        />
+        <OptionSelector
+          title="Nível"
+          options={levelOptions}
+          selectedValues={level}
+          onSelect={setLevel}
+        />
+        <OptionSelector
+          title="Gênero"
+          options={genderOptions}
+          selectedValues={gender}
+          onSelect={setGender}
+        />
+
+        <ParticipantCounter
+          label={"Mínimo de\nparticipantes"}
+          value={minPart}
+          setValue={setMinPart}
+        />
+        <ParticipantCounter
+          label={"Máximo de\nparticipantes"}
+          value={maxPart}
+          setValue={setMaxPart}
+        />
+
+        <DescriptionInput value={description} onChangeText={setDescription} />
+
+        <SubmitButton title="Criar evento" onPress={handleCreateEvent} />
       </View>
-
-      <View className="mb-0">
-        <View className="w-full h-12 bg-white bg-opacity-50 border-b-2 border-green-700 rounded-lg overflow-hidden shadow">
-          <Picker
-            selectedValue={level}
-            onValueChange={setLevel}
-            className="h-12">
-            <Picker.Item label="Level" value="" enabled={false} />
-            <Picker.Item label="Iniciante" value="Iniciante" />
-            <Picker.Item label="Intermediario" value="Intermediario" />
-            <Picker.Item label="Avançado" value="Avançado" />
-            <Picker.Item label="Semi-profissional" value="Semi-profissional" />
-          </Picker>
-        </View>
-      </View>
-
-      <View className="mb-10">
-        <View className="w-full h-12 bg-white bg-opacity-50 border-b-2 border-green-700 rounded-lg overflow-hidden shadow">
-          <Picker
-            selectedValue={gender}
-            onValueChange={setGender}
-            className="h-12">
-            <Picker.Item label="Genero" value="" enabled={false} />
-            <Picker.Item label="Masculino" value="masculino" />
-            <Picker.Item label="Feminino" value="feminino" />
-            <Picker.Item label="Outro" value="outro" />
-          </Picker>
-        </View>
-      </View>
-
-      {/*<View className="mb-0">
-        <TouchableOpacity
-          onPress={() => setShowDatePicker(true)}
-          className="w-full h-12 bg-white bg-opacity-50 border-b-2 border-green-700 rounded-lg px-4 justify-center shadow">
-          <TextInput
-            editable={false}
-            value={date.toLocaleDateString()}
-            placeholder="Data do Evento"
-            placeholderTextColor="#000"
-            className="text-black"
-          />
-        </TouchableOpacity>
-        {showDatePicker && (
-          <DateTimePicker
-            value={date}
-            mode="date"
-            display="default"
-            onChange={(e, d) => {
-              setShowDatePicker(Platform.OS === "ios");
-              if (d) setDate(d);
-            }}
-          />
-        )}
-
-        <TouchableOpacity
-          onPress={() => setShowStartPicker(true)}
-          className="w-full h-12 bg-white bg-opacity-50 border-b-2 border-green-700 rounded-lg px-4 justify-center shadow">
-          <TextInput
-            editable={false}
-            value={startTime.toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-            placeholder="Inicio"
-            placeholderTextColor="#000"
-            className="text-black"
-          />
-        </TouchableOpacity>
-        {showStartPicker && (
-          <DateTimePicker
-            value={startTime}
-            mode="time"
-            display="default"
-            onChange={(e, d) => {
-              setShowStartPicker(Platform.OS === "ios");
-              if (d) setStartTime(d);
-            }}
-          />
-        )}
-      </View>*/}
-      <View className="mb-0">
-        <TouchableOpacity
-          onPress={() => setShowDatePicker(true)}
-          className="w-full h-12 bg-white bg-opacity-50 border-b-2 border-green-700 rounded-lg flex-row justify-between items-center px-4 mb-0 shadow">
-          <Text className="text-black">Data do Evento</Text>
-          <Text className="text-black">
-            {date.toLocaleDateString("default", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            })}
-          </Text>
-        </TouchableOpacity>
-        {showDatePicker && (
-          <DateTimePicker
-            value={date}
-            mode="date"
-            display="default"
-            onChange={(e, d) => {
-              setShowDatePicker(Platform.OS === "ios");
-              if (d) setDate(d);
-            }}
-          />
-        )}
-
-        <TouchableOpacity
-          onPress={() => setShowStartPicker(true)}
-          className="w-full h-12 bg-white bg-opacity-50 border-b-2 border-green-700 rounded-lg flex-row justify-between items-center px-4 mb-0 shadow">
-          <Text className="text-black">Inicio</Text>
-          <Text className="text-black">
-            {`${startTime.getHours()} : ${startTime
-              .getMinutes()
-              .toString()
-              .padStart(2, "0")}`}
-          </Text>
-        </TouchableOpacity>
-        {showStartPicker && (
-          <DateTimePicker
-            value={startTime}
-            mode="time"
-            display="default"
-            onChange={(e, d) => {
-              setShowStartPicker(Platform.OS === "ios");
-              if (d) setStartTime(d);
-            }}
-          />
-        )}
-      </View>
-      <View className="mb-6">
-        <TouchableOpacity
-          onPress={() => setShowStartPicker(true)}
-          className="w-full h-12 bg-white bg-opacity-50 border-b-2 border-green-700 rounded-lg flex-row justify-between items-center px-4 mb-0 shadow">
-          <Text className="text-black">Fim</Text>
-          <Text className="text-black">
-            {`${endTime.getHours()} : ${endTime
-              .getMinutes()
-              .toString()
-              .padStart(2, "0")}`}
-          </Text>
-        </TouchableOpacity>
-        {showEndPicker && (
-          <DateTimePicker
-            value={endTime}
-            mode="time"
-            display="default"
-            onChange={(e, d) => {
-              setShowEndPicker(Platform.OS === "ios");
-              if (d) setEndTime(d);
-            }}
-          />
-        )}
-
-        <View className="w-full h-12 bg-white bg-opacity-50 border-b-2 border-green-700 rounded-lg flex-row justify-between items-center px-4 shadow">
-          <Text className="text-black">Valor de entrada</Text>
-          <View className="flex-row items-center">
-            <TextInput
-              value={price}
-              onChangeText={(t) => setPrice(t.replace(/\D/g, ""))}
-              keyboardType="numeric"
-              className="w-16 text-right text-black"
-              placeholder="0"
-              placeholderTextColor="#000"
-              style={{ paddingRight: 0, marginRight: 0 }}
-            />
-            <Text className="text-black ml-1">$</Text>
-          </View>
-        </View>
-      </View>
-      <Text className="text-black font-bold text-2xl mb-1">Descrição</Text>
-      <TextInput
-        placeholder="Escreva aqui a descrição do seu evento"
-        placeholderTextColor="#888"
-        value={description}
-        onChangeText={setDescription}
-        multiline
-        className="w-full h-24 bg-white border border-gray-400 rounded-lg p-4 mb-4 shadow"
-      />
-
-      <TouchableOpacity className="w-full h-14 bg-green-600 rounded-full justify-center items-center shadow mb-4">
-        <Text className="text-white font-bold text-xl">Criar Evento</Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 }

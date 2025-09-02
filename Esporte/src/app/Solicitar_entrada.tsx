@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, Image, ScrollView, Alert } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  ScrollView,
+  Alert,
+} from "react-native";
 import { router } from "expo-router";
 import { requestEventEntry } from "../services/EventEntryService";
 import axios from "axios";
@@ -11,14 +19,16 @@ export default function ConfirmarSenha() {
   const [organizerName, setOrganizerName] = useState("");
   const [participants, setParticipants] = useState<{ name: string }[]>([
     {
-      name: "Diego Alcantara"
-    }
+      name: "Diego Alcantara",
+    },
   ]);
   const eventId = 3; // substitua pelo ID do evento que você deseja buscar
 
   useEffect(() => {
     const fetchEvent = async () => {
-      const response = await axios.get(`http://192.168.100.10:8080/api/v1/events/${eventId}`);
+      const response = await axios.get(
+        `http://192.168.100.10:8080/api/v1/events/${eventId}`
+      );
       setOrganizer(response.data.organizerPhoto);
       setOrganizerName(response.data.organizerName);
     };
@@ -27,8 +37,10 @@ export default function ConfirmarSenha() {
 
   useEffect(() => {
     const fetchParticipants = async () => {
-        const response = await axios.get(`http://192.168.100.10:8080/api/v1/events/${eventId}/participants`);
-        setParticipants(response.data);
+      const response = await axios.get(
+        `http://192.168.100.10:8080/api/v1/events/${eventId}/participants`
+      );
+      setParticipants(response.data);
     };
     fetchParticipants();
   }, []);
@@ -45,10 +57,13 @@ export default function ConfirmarSenha() {
 
   const handleCreateEvent = async () => {
     try {
-      const response = await axios.post("http://192.168.100.10:8080/api/v1/events", {
-        name: eventName,
-        description: eventDescription,
-      });
+      const response = await axios.post(
+        "http://192.168.100.10:8080/api/v1/events",
+        {
+          name: eventName,
+          description: eventDescription,
+        }
+      );
       Alert.alert("Sucesso", "Evento criado com sucesso!");
     } catch (error) {
       Alert.alert("Erro", "Não foi possível criar o evento.");
@@ -59,15 +74,13 @@ export default function ConfirmarSenha() {
     <View className="flex-1 bg-[#FFFFFF]">
       <ScrollView
         contentContainerStyle={{ paddingBottom: 180 }}
-        showsVerticalScrollIndicator={false}
-      >
+        showsVerticalScrollIndicator={false}>
         <TouchableOpacity
           className="absolute top-[56px] left-[30px] z-50"
           onPress={() => {
             router.push("/auth");
-          }}
-        >
-          <Text className="text-[40px] text-green-600">{'<'}</Text>
+          }}>
+          <Text className="text-[40px] text-green-600">{"<"}</Text>
           <Image
             source={require("../assets/images/Vector (3).png")}
             className="absolute top-[8px] right-[-325px] w-[30px] h-[30px]"
@@ -143,7 +156,7 @@ export default function ConfirmarSenha() {
             </View>
             <View className="flex-col">
               <Text className="text-[16px] font-bold text-black">
-                Ibirapuera Park - Vila Mariana  &gt;
+                Ibirapuera Park - Vila Mariana &gt;
               </Text>
               <Text className="text-[14px] text-black">
                 Valor de entrada $40
@@ -219,7 +232,9 @@ export default function ConfirmarSenha() {
           Participantes
         </Text>
         {participants.map((participant, index) => (
-          <View className="flex-row items-center ml-[30px] top-[50px] " key={index}>
+          <View
+            className="flex-row items-center ml-[30px] top-[50px] "
+            key={index}>
             <View className="relative w-[40px] h-[38px] mr-4">
               <Image
                 source={require("../assets/images/participante.png")}
@@ -239,8 +254,7 @@ export default function ConfirmarSenha() {
       {/* Botão fixo */}
       <TouchableOpacity
         className="absolute bottom-8 left-[46px] w-[328px] h-[56px] bg-[#40B843] rounded-[20px] shadow-md flex items-center justify-center z-50"
-        onPress={handleSolicitarEntrada}
-      >
+        onPress={handleSolicitarEntrada}>
         <Text className="text-white text-lg font-bold text-[20px] ml-2">
           Solicitar entrada
         </Text>
