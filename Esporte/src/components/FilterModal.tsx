@@ -2,19 +2,20 @@ import React, { useState } from 'react';
 import { Modal, View, Text, TouchableOpacity, TextInput, ScrollView, Platform } from 'react-native';
 import Slider from '@react-native-community/slider';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import * as Location from 'expo-location';
 
 interface FilterModalProps {
   visible: boolean;
   onClose: () => void;
+  onFilter?: (filter: any) => void;
 }
 
 const sportsOptions = ['Futebol', 'Basquete', 'Vôlei', 'Tênis', 'Handebol', 'Corrida', 'Natação'];
 
-const FilterModal: React.FC<FilterModalProps> = ({ visible, onClose }) => {
+const FilterModal: React.FC<FilterModalProps> = ({ visible, onClose, onFilter }) => {
   const [selectedSports, setSelectedSports] = useState<string[]>([]);
   const [selectedLevel, setSelectedLevel] = useState<string>('Iniciante');
   const [distance, setDistance] = useState<number>(3.4);
-  const [useCurrentLocation, setUseCurrentLocation] = useState<boolean>(true);
   const [eventDate, setEventDate] = useState<string>('');
   const [startHour, setStartHour] = useState<string>('04');
   const [startMinute, setStartMinute] = useState<string>('50');
@@ -23,6 +24,8 @@ const FilterModal: React.FC<FilterModalProps> = ({ visible, onClose }) => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dateObj, setDateObj] = useState<Date | undefined>(undefined);
   const [showSportsDropdown, setShowSportsDropdown] = useState(false);
+  const [useCurrentLocation, setUseCurrentLocation] = useState(false);
+  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
 
   const levels = ['Iniciante', 'Intermediário', 'Avançado', 'Semi-profissional'];
 
@@ -44,6 +47,65 @@ const FilterModal: React.FC<FilterModalProps> = ({ visible, onClose }) => {
       const formatted = selectedDate.toLocaleDateString('pt-BR');
       setEventDate(formatted);
     }
+  };
+
+  // Função para buscar localização atual usando expo-location
+  const handleToggleLocation = async () => {
+    if (!useCurrentLocation) {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setLocation(null);
+        setUseCurrentLocation(false);
+        return;
+      }
+      try {
+        const pos = await Location.getCurrentPositionAsync({});
+        setLocation({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        });
+        setUseCurrentLocation(true);
+      } catch (err) {
+        setLocation(null);
+        setUseCurrentLocation(false);
+      }
+    } else {
+      setLocation(null);
+      setUseCurrentLocation(false);
+    }
+  };
+
+  // Função para montar o filtro e chamar o callback
+  const handleFilterPress = () => {
+    const filter = {
+      latitude: useCurrentLocation && location ? location.latitude : null,
+      longitude: useCurrentLocation && location ? location.longitude : null,
+      maxDistanceKm: distance,
+      sports: selectedSports,
+      levels: [selectedLevel],
+      date: dateObj ? dateObj.toISOString().split('T')[0] : null,
+      startTime: `${startHour.padStart(2, '0')}:${startMinute.padStart(2, '0')}`,
+      endTime: `${endHour.padStart(2, '0')}:${endMinute.padStart(2, '0')}`,
+    };
+    if (onFilter) onFilter(filter);
+    onClose();
+  };
+
+  // Função para limpar filtro
+  const handleClearFilter = () => {
+    setSelectedSports([]);
+    setSelectedLevel('Iniciante');
+    setDistance(3.4);
+    setEventDate('');
+    setDateObj(undefined);
+    setStartHour('04');
+    setStartMinute('50');
+    setEndHour('04');
+    setEndMinute('50');
+    setUseCurrentLocation(false);
+    setLocation(null);
+    if (onFilter) onFilter(null);
+    onClose();
   };
 
   return (
@@ -74,14 +136,6 @@ const FilterModal: React.FC<FilterModalProps> = ({ visible, onClose }) => {
             <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#000' }}>
               Sports Events
             </Text>
-            <View style={{
-              backgroundColor: '#00D84A',
-              paddingHorizontal: 12,
-              paddingVertical: 4,
-              borderRadius: 12
-            }}>
-              <Text style={{ color: '#fff', fontSize: 12 }}>ON</Text>
-            </View>
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false}>
@@ -195,13 +249,13 @@ const FilterModal: React.FC<FilterModalProps> = ({ visible, onClose }) => {
                     paddingVertical: 4,
                     borderRadius: 12
                   }}
-                  onPress={() => setUseCurrentLocation(!useCurrentLocation)}
+                  onPress={handleToggleLocation}
                 >
                   <Text style={{
                     color: useCurrentLocation ? '#fff' : '#666',
                     fontSize: 12
                   }}>
-                    {useCurrentLocation ? 'Onu' : 'Localização atual'}
+                    {useCurrentLocation ? 'Localização atual' : 'Localização atual'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -317,6 +371,23 @@ const FilterModal: React.FC<FilterModalProps> = ({ visible, onClose }) => {
               </View>
             </View>
 
+            {/* Botão Limpar Filtro */}
+            {(selectedSports.length > 0 || eventDate || selectedLevel !== 'Iniciante' || distance !== 3.4) && (
+              <TouchableOpacity
+                style={{
+                  backgroundColor: '#F0F0F0',
+                  paddingVertical: 12,
+                  borderRadius: 12,
+                  alignItems: 'center',
+                  marginBottom: 10
+                }}
+                onPress={handleClearFilter}
+              >
+                <Text style={{ color: '#00D84A', fontSize: 16, fontWeight: 'bold' }}>
+                  Limpar Filtro
+                </Text>
+              </TouchableOpacity>
+            )}
             {/* Filter Button */}
             <TouchableOpacity
               style={{
@@ -326,7 +397,7 @@ const FilterModal: React.FC<FilterModalProps> = ({ visible, onClose }) => {
                 alignItems: 'center',
                 marginBottom: 10
               }}
-              onPress={onClose}
+              onPress={handleFilterPress}
             >
               <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>
                 Filtrar
