@@ -1,4 +1,3 @@
-// src/app/public/MutualFriendsScreen.tsx
 import React from "react";
 import {
   SafeAreaView,
@@ -10,6 +9,7 @@ import {
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import FriendRow, { FriendRowData } from "../components/ui/FriendRow";
+import { images } from "../assets/images";
 
 type P = {
   id?: string;
@@ -19,14 +19,24 @@ type P = {
   friends?: string;
 };
 
+const MOCK_ALL_USERS: Record<string, FriendRowData> = {
+  amigo1: { id: "101", name: "Samara Santos", avatar: "amigo1" },
+  amigo2: { id: "102", name: "Lucas Andrade", avatar: "amigo2" },
+  amigo3: { id: "103", name: "Beatriz Lima", avatar: "amigo3" },
+};
+
 export default function MutualFriendsScreen() {
   const router = useRouter();
-  const { name, mutualCount } = useLocalSearchParams<P>();
-  const list: FriendRowData[] = [];
+  const { name, mutualCount, friends } = useLocalSearchParams<P>();
+  const mutualFriendKeys: string[] = friends ? JSON.parse(friends) : [];
+  const list: FriendRowData[] = mutualFriendKeys
+    .map((key) => MOCK_ALL_USERS[key])
+    .filter(Boolean);
 
   return (
     <SafeAreaView className="flex-1 bg-[#F7FFED]">
-      <View className="px-4 pt-2">
+      {/* Container principal com padding superior ajustado */}
+      <View className="px-4 pt-10">
         <View className="flex-row items-center justify-between">
           <TouchableOpacity onPress={() => router.back()} className="p-2">
             <Feather name="chevron-left" size={24} color="#43A047" />
@@ -42,9 +52,11 @@ export default function MutualFriendsScreen() {
           {Number(mutualCount ?? 0)} amigos em comum
         </Text>
       </View>
-      <ScrollView className="px-4 mt-6">
-        {list.map((f) => (
-          <FriendRow key={f.id} data={f} />
+
+      {/* ScrollView com margem superior aumentada */}
+      <ScrollView className="px-4 mt-20">
+        {list.map((friend) => (
+          <FriendRow key={friend.id} data={friend} />
         ))}
       </ScrollView>
     </SafeAreaView>

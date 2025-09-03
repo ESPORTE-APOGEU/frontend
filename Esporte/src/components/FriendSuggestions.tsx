@@ -1,8 +1,9 @@
 // src/components/FriendSuggestions.tsx
+
 import React from "react";
 import { View, Text, Image, TouchableOpacity } from "react-native";
 import { images } from "../assets/images";
-import { useNavigation } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 
 export type Suggestion = {
   id: string;
@@ -16,8 +17,59 @@ interface Props {
   suggestions: Suggestion[];
 }
 
+// ✅ 1. Objeto de mock COMPLETO e BEM TIPADO
+// Ele agora contém todos os usuários que podem ser referenciados.
+const MOCK_ALL_USERS: Record<string, Suggestion> = {
+  amigo1: {
+    id: "101",
+    name: "Diego Alcantara",
+    avatar: "amigo1",
+    mutualCount: 5,
+    mutualAvatars: ["amigo2", "amigo3"],
+  },
+  amigo2: {
+    id: "102",
+    name: "Lucas Andrade",
+    avatar: "amigo2",
+    mutualCount: 3,
+    mutualAvatars: ["amigo1"],
+  },
+  amigo3: {
+    id: "103",
+    name: "Beatriz Lima",
+    avatar: "amigo3",
+    mutualCount: 8,
+    mutualAvatars: ["amigo1", "amigo2"],
+  },
+  // Adicione outros usuários se necessário para cobrir todas as chaves de avatar
+  iconedocaba: {
+    id: "999",
+    name: "Usuário Teste",
+    avatar: "iconedocaba",
+    mutualCount: 0,
+    mutualAvatars: [],
+  },
+};
+
 export function FriendSuggestions({ suggestions }: Props) {
-  const navigation = useNavigation<any>();
+  const router = useRouter();
+
+  const handleMutualFriendPress = (avatarKey: keyof typeof images) => {
+    // A chave agora deve existir no objeto MOCK_ALL_USERS
+    const friendData = MOCK_ALL_USERS[avatarKey];
+    if (friendData) {
+      router.push({
+        // ✅ 2. Rota CORRIGIDA (sem /public)
+        pathname: "/MutualFriendsScreen",
+        params: {
+          id: friendData.id,
+          name: friendData.name,
+          mutualCount: friendData.mutualCount,
+          friends: JSON.stringify(friendData.mutualAvatars ?? []),
+        },
+      });
+    }
+  };
 
   return (
     <View>
@@ -31,7 +83,16 @@ export function FriendSuggestions({ suggestions }: Props) {
           className="flex-row items-center rounded-lg px-4 py-3 mx-4 mb-3">
           <TouchableOpacity
             onPress={() =>
-              navigation.navigate("../app/MutualFriendsScreen", { id: s.id })
+              router.push({
+                // ✅ 2. Rota CORRIGIDA (sem /public)
+                pathname: "/MutualFriendsScreen",
+                params: {
+                  id: s.id,
+                  name: s.name,
+                  mutualCount: s.mutualCount,
+                  friends: JSON.stringify(s.mutualAvatars ?? []),
+                },
+              })
             }>
             <Image
               source={images[s.avatar]}
@@ -47,11 +108,7 @@ export function FriendSuggestions({ suggestions }: Props) {
             {(s.mutualAvatars ?? []).slice(0, 3).map((m, i) => (
               <TouchableOpacity
                 key={`${s.id}-${m}-${i}`}
-                onPress={() =>
-                  navigation.navigate("../app/MutualFriendsScreenr", {
-                    avatar: m,
-                  })
-                }>
+                onPress={() => handleMutualFriendPress(m)}>
                 <Image
                   source={images[m]}
                   className={`w-6 h-6 rounded-full ${i ? "-ml-2" : ""}`}

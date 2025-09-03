@@ -1,9 +1,13 @@
 // src/components/FriendRequests.tsx
+
 import React from "react";
 import { View, Text, Image, TouchableOpacity } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { images } from "../assets/images";
-import { useNavigation } from "@react-navigation/native";
+// ❌ REMOVA a importação do useNavigation
+// import { useNavigation } from "@react-navigation/native";
+// ✅ ADICIONE a importação do useRouter
+import { useRouter } from "expo-router";
 
 export type Request = {
   id: string;
@@ -18,7 +22,10 @@ interface Props {
 }
 
 export function FriendRequests({ requests }: Props) {
-  const navigation = useNavigation<any>();
+  // ❌ REMOVA o hook useNavigation
+  // const navigation = useNavigation<any>();
+  // ✅ ADICIONE o hook useRouter
+  const router = useRouter();
 
   return (
     <View className="px-4">
@@ -37,11 +44,16 @@ export function FriendRequests({ requests }: Props) {
               <TouchableOpacity
                 className="flex-row items-center mt-1"
                 onPress={() =>
-                  navigation.navigate("../app/mutualFriendsScreen", {
-                    id: r.id,
-                    name: r.name,
-                    mutualCount: r.mutualCount,
-                    mutualAvatars: r.mutualAvatars ?? [],
+                  // ✅ CORRIJA a chamada de navegação
+                  router.push({
+                    pathname: "/MutualFriendsScreen", // Use o caminho da rota
+                    params: {
+                      id: r.id,
+                      name: r.name,
+                      mutualCount: r.mutualCount,
+                      // Parâmetros de URL precisam ser strings. Arrays devem ser convertidos.
+                      friends: JSON.stringify(r.mutualAvatars ?? []),
+                    },
                   })
                 }>
                 <Image source={images.amizade} className="w-4 h-4 mr-1" />
