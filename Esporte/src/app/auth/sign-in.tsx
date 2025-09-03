@@ -42,41 +42,10 @@ export default function LoginScreen() {
       if (signInAttempt.status === "complete") {
         await setActive({ session: signInAttempt.createdSessionId });
 
-        // 1. Pega o userId do Clerk
-        const { user } = useUser();
-        const idClerk = user?.id;
-
-        if (!idClerk) {
-          console.error("User ID do Clerk não encontrado");
-          return;
-        }
-
-        // 2. Envia para o backend
-        const response = await fetch(
-          "http://localhost:8080/api/v1/auth/login",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ idClerk }),
-          }
-        );
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || "Erro ao autenticar com o backend");
-        }
-
-        // 3. Armazena o token do backend
-        await SecureStore.setItemAsync("token", data.token);
-
-        // 4. Redireciona
-        router.replace("/confirmar_senha");
+        router.replace("/confirmar_senha"); /////// TROCAR PARA A ROTA CORRETA DEPOIS
       } else {
         console.error(
-          "Erro no login do Clerk:",
+          "Login incompleto:",
           JSON.stringify(signInAttempt, null, 2)
         );
       }
