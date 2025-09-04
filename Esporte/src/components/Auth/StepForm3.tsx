@@ -1,25 +1,30 @@
 import React from "react";
 import { View, Text, Alert, TouchableOpacity } from "react-native";
-import { Gender } from "@/interfaces/SigupForm";
-import useSignup from "@/hooks/Singup";
+import { Gender, SignupForm } from "@/interfaces/SigupForm";
 import LargeButton from "../ui/Forms/LargeButtom";
 import DateInput from "../ui/Forms/DateInput";
-import TextInput from "../ui/Forms/TextInput";
 import DropDownInput from "../ui/Forms/DropDownInput";
 import Autocomplete from "../ui/Forms/AutoCompleteTags";
-import { useSignUp } from "@clerk/clerk-expo";
+import { useAuth, useSignUp, useUser } from "@clerk/clerk-expo";
 interface StepsSignupProps {
   onNext?: () => void;
+  form: SignupForm;
+  setForm: React.Dispatch<React.SetStateAction<SignupForm>>;
 }
 type Option = {
   label: string;
   value: string;
 };
-export default function StepForm3({ onNext }: StepsSignupProps) {
+export default function StepForm3({ onNext, form, setForm }: StepsSignupProps) {
   const [selectedCity, setSelectedCity] = React.useState<string>("");
   const [selectedSports, setSelectedSports] = React.useState<string[]>([]);
-  const { form, setForm } = useSignup();
   const { signUp, setActive } = useSignUp();
+  const { user } = useUser();
+  const { getToken } = useAuth();
+
+  React.useEffect(() => {
+    setForm({ ...form, sports: selectedSports });
+  }, [selectedSports]);
 
   const handleCreateAccount = async () => {
     try {
@@ -27,6 +32,8 @@ export default function StepForm3({ onNext }: StepsSignupProps) {
         throw new Error("Clerk SignUp not initialized");
       }
       // 1. Cria no Clerk
+      console.log("----", form);
+
       const res = await signUp.create({
         emailAddress: form.email,
         password: form.password,
@@ -38,15 +45,19 @@ export default function StepForm3({ onNext }: StepsSignupProps) {
 
       await setActive({ session: res.createdSessionId });
 
-      // 2. Registra no backend
-      await fetch("https://localhost:8080/api/v1/users", {
+      const token = await getToken();
+
+      if (!user) {
+        throw new Error("Falha ao registrar usuário no banco de dados");
+      }
+      await fetch(process.env.EXPO_PUBLIC_BACKEND_URL + "/api/v1/users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${res.createdSessionId}`, // opcional se backend validar token
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          id: res.id, // Clerk ID
+          id: user.id, // Clerk ID
           name: form.name,
           email: form.email,
           birthday: form.birthday,
