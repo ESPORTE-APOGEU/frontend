@@ -14,6 +14,8 @@ import EventCard from '../../components/EventCard';
 import BottomNavigation from '../../components/FutterBar';
 import axios from 'axios';
 import FilterModal from '../../components/FilterModal';
+import RatingModal from '../../components/RatingModal';
+import ReportModal from '../../components/ReportModal';
 import { debounce } from 'lodash';
 
 
@@ -36,6 +38,8 @@ const DEFAULT_IMAGE = require('../../assets/images/default_card.png');
 export default function Home() {
   const [searchText, setSearchText] = useState('');
   const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [ratingModalVisible, setRatingModalVisible] = useState(false);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
   const [events, setEvents] = useState<EventResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -121,28 +125,19 @@ export default function Home() {
   };
 
   return (
-    <SafeAreaView className="flex-1" style={{ backgroundColor: '#F8F9FA' }}>
+    <SafeAreaView className="flex-1 bg-[#F8F9FA]">
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Header superior */}
-      <View style={{
-        marginTop: 20,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingTop: 0,
-        paddingBottom: 0,
-        backgroundColor: '#F8F9FA'
-      }}>
+      <View className="mt-5 flex-row items-center justify-between px-4 pt-0 pb-0 bg-[#F8F9FA]">
         {/* Logo + SearchBar */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+        <View className="flex-row items-center flex-1">
           <Image
             source={require('../../assets/images/logo_home.png')}
-            style={{ width: 36, height: 36, marginRight: 8 }}
+            className="w-9 h-9 mr-2"
             resizeMode="contain"
           />
-          <View style={{ flex: 1 }}>
+          <View className="flex-1">
             <SearchBar
               placeholder="What are you looking for?"
               value={searchText}
@@ -151,43 +146,22 @@ export default function Home() {
           </View>
         </View>
         {/* Notificação */}
-        <TouchableOpacity style={{ marginLeft: 10 }}>
+        <TouchableOpacity className="ml-2.5">
           <Ionicons name="notifications-outline" size={26} color="#007AFF" />
         </TouchableOpacity>
       </View>
 
       {/* Título e botão de filtro */}
-      <View style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginTop: 10,
-        marginBottom: 8,
-        paddingHorizontal: 20,
-      }}>
-        <Text style={{ fontSize: 22, fontWeight: 'bold' }}>Sports Events</Text>
+      <View className="flex-row items-center justify-between mt-2 mb-2 px-5">
+        <Text className="text-[22px] font-bold">Sports Events</Text>
         <TouchableOpacity
-          style={{
-            backgroundColor: '#00D36C',
-            borderRadius: 20,
-            paddingHorizontal: 16,
-            paddingVertical: 6,
-            flexDirection: 'row',
-            alignItems: 'center'
-          }}
+          className="bg-[#00D36C] rounded-full px-4 py-1.5 flex-row items-center"
           onPress={() => setFilterModalVisible(true)}
         >
-          <Text style={{ color: '#fff', fontWeight: 'bold', marginRight: 6 }}>Filter</Text>
+          <Text className="text-white font-bold mr-1.5">Filter</Text>
           {activeFiltersCount > 0 ? (
-            <View style={{
-              width: 22,
-              height: 22,
-              borderRadius: 11,
-              backgroundColor: '#fff',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <Text style={{ color: '#00D36C', fontWeight: 'bold', fontSize: 12 }}>{activeFiltersCount}</Text>
+            <View className="w-[22px] h-[22px] rounded-full bg-white items-center justify-center">
+              <Text className="text-[#00D36C] font-bold text-[12px]">{activeFiltersCount}</Text>
             </View>
           ) : (
             <Ionicons name="filter" size={18} color="#fff" />
@@ -202,15 +176,15 @@ export default function Home() {
         contentContainerStyle={{ paddingBottom: 140 }}
       >
         {loading ? (
-          <Text style={{ textAlign: 'center', marginTop: 40 }}>Carregando eventos...</Text>
+          <Text className="text-center mt-10">Carregando eventos...</Text>
         ) : error ? (
-          <View style={{ marginTop: 40 }}>
-            <Text style={{ textAlign: 'center', color: 'red' }}>Erro: {error}</Text>
+          <View className="mt-10">
+            <Text className="text-center text-red-600">Erro: {error}</Text>
           </View>
         ) : events.length === 0 ? (
-          <View style={{ marginTop: 40 }}>
-            <Text style={{ textAlign: 'center' }}>Nenhum evento encontrado.</Text>
-            <Text style={{ fontSize: 12, color: '#888', marginTop: 10, textAlign: 'center' }}>Debug: {JSON.stringify(events)}</Text>
+          <View className="mt-10">
+            <Text className="text-center">Nenhum evento encontrado.</Text>
+            <Text className="text-[12px] text-gray-400 mt-2.5 text-center">Debug: {JSON.stringify(events)}</Text>
           </View>
         ) : (
           // Remova o filtro local, apenas renderize os eventos recebidos
@@ -244,6 +218,25 @@ export default function Home() {
         visible={filterModalVisible}
         onClose={() => setFilterModalVisible(false)}
         onFilter={handleFilter}
+      />
+
+      {/* Modal de avaliação de usuário */}
+      <RatingModal
+        visible={ratingModalVisible}
+        onClose={() => setRatingModalVisible(false)}
+        user={{ name: 'Stefane Brito' }}
+        onSubmit={(rating, level, description) => {
+          console.log('Avaliação enviada', { rating, level, description });
+        }}
+      />
+
+      {/* Modal de report (visualização) */}
+      <ReportModal
+        visible={reportModalVisible}
+        onClose={() => setReportModalVisible(false)}
+        onSubmit={(reason, description) => {
+          console.log('Report enviado', { reason, description });
+        }}
       />
 
       {/* Barra de navegação inferior */}
