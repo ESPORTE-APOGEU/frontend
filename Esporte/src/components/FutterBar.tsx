@@ -16,7 +16,7 @@ export default function BottomNavigation() {
   };
 
   const handleAddPress = () => {
-    console.log("Add pressed");
+    router.push("/public/criarEvento");
   };
 
   const handleExercisesPress = () => {

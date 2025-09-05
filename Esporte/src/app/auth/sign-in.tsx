@@ -70,7 +70,7 @@ export default function LoginScreen() {
             return;
           }
           await activate({ session: createdSessionId });
-          router.replace("/create_conta");
+          router.replace("/auth/criarConta");
         }
       } catch (err) {
         console.error("Erro no SSO:", err);
