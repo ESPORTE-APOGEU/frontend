@@ -11,7 +11,7 @@ export default function ConfirmarSenha() {
       {/* Seta para a esquerda com zIndex maior */}
       <TouchableOpacity
         className="absolute top-[56px] left-[44px] z-50"
-        onPress={() => { router.push("/create_conta"); }}
+        onPress={() => { router.push("/auth/criarConta"); }}
       >
         <Text className="text-[40px] text-white">←</Text>
       </TouchableOpacity>
@@ -62,7 +62,7 @@ export default function ConfirmarSenha() {
       {/* Botão para próxima página */}
       <TouchableOpacity
         className="absolute top-[595px] left-[46px] w-[328px] h-[56px] bg-[#40B843] rounded-[20px] shadow-md flex items-center justify-center"
-        onPress={() => { router.push("/create_conta"); }}
+        onPress={() => { router.push("/auth/criarConta"); }}
       >
         <Text className="text-white text-lg font-bold text-[25px]">Next</Text>
       </TouchableOpacity>

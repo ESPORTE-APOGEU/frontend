@@ -16,6 +16,8 @@ import axios from 'axios';
 import FilterModal from '../../components/FilterModal';
 
 
+import { useAuth } from '@clerk/clerk-expo';
+
 export interface EventResponse {
   id: number;
   name: string;
@@ -26,7 +28,7 @@ export interface EventResponse {
   date: string;
   startTime: string;
   endTime: string;
-  price: string;
+  price: string | number;
   description: string;
 }
 
@@ -39,25 +41,66 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Clerk
+  const { getToken, isLoaded, isSignedIn } = useAuth();
+
+  // Helper para montar headers com JWT
+  const getAuthHeaders = async (withJsonContentType = false) => {
+    const token = await getToken({ template: 'backend' });
+    if (!token) throw new Error('Não foi possível obter o token JWT.');
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json',
+    };
+    if (withJsonContentType) {
+      headers['Content-Type'] = 'application/json';
+    }
+    return headers;
+  };
+
   useEffect(() => {
+    // só tenta buscar depois do Clerk carregar e se estiver logado
+    if (!isLoaded) return;
+    if (!isSignedIn) {
+      setEvents([]);
+      setError('Você não está autenticado.');
+      return;
+    }
     fetchEvents();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, isSignedIn]);
 
   const fetchEvents = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get('http://192.168.100.89:8080/api/v1/events');
-      console.log('Fetched events:', res.data);
+      const res = await axios.get(
+        process.env.EXPO_PUBLIC_BACKEND_URL + '/api/v1/events',
+        { headers: await getAuthHeaders() }
+      );
       setEvents(res.data);
     } catch (err: any) {
       setEvents([]);
-      setError(err?.message || 'Erro ao conectar ao backend');
+      const msg =
+        err?.response
+          ? `Erro ${err.response.status}: ${
+              typeof err.response.data === 'string'
+                ? err.response.data
+                : err.response.data?.message || 'Falha ao buscar eventos'
+            }`
+          : err?.message || 'Erro ao conectar ao backend';
+      setError(msg);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleFilter = async (filter: any) => {
+    if (!isSignedIn) {
+      setEvents([]);
+      setError('Você não está autenticado.');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -65,19 +108,31 @@ export default function Home() {
         await fetchEvents();
         return;
       }
-      const res = await axios.post('http://192.168.100.89:8080/api/v1/events/filter', filter);
+      const res = await axios.post(
+        process.env.EXPO_PUBLIC_BACKEND_URL + '/api/v1/events/filter',
+        filter,
+        { headers: await getAuthHeaders(true) }
+      );
       setEvents(res.data);
     } catch (err: any) {
       setEvents([]);
-      setError(err?.message || 'Erro ao conectar ao backend');
+      const msg =
+        err?.response
+          ? `Erro ${err.response.status}: ${
+              typeof err.response.data === 'string'
+                ? err.response.data
+                : err.response.data?.message || 'Falha ao filtrar eventos'
+            }`
+          : err?.message || 'Erro ao conectar ao backend';
+      setError(msg);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleEventPress = (eventId: number) => {
     console.log('Event pressed:', eventId);
   };
-
   return (
     <SafeAreaView className="flex-1" style={{ backgroundColor: '#F8F9FA' }}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
