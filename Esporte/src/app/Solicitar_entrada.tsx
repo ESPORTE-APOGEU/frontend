@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, Image, ScrollView, Alert } from "react-native";
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
 import { requestEventEntry } from "../services/EventEntryService";
 import axios from "axios";
 
@@ -15,6 +15,7 @@ const eventId = 37; // use o MESMO ID do POST
 const userId = 35;  // id real do participante
 
 export default function ConfirmarSenha() {
+  const router = useRouter();
   const [eventName, setEventName] = useState("");
   const [eventDescription, setEventDescription] = useState("");
   const [organizer, setOrganizer] = useState("");
@@ -61,11 +62,11 @@ export default function ConfirmarSenha() {
     try {
       const data = await requestEventEntry(eventId, userId);
       Alert.alert("Sucesso", data.message);
-      // Recarrega participantes antes de sair
+      // re­carrega participantes
       const { data: parts } = await axios.get(`${API}/api/v1/events/${eventId}/participants`);
       setParticipants(parts);
-      // opcional: comentar o redirect para ver a atualização
-      // router.push("/auth");
+        // redireciona para notificações
+        router.push("/notificacoes");
     } catch (error: any) {
       Alert.alert("Erro", error.message);
     }

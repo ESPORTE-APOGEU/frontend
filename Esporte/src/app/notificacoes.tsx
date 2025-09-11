@@ -1,6 +1,6 @@
 // screens/Notificacoes.tsx
 
-import { useEffect, useState, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   SafeAreaView,
   View,
@@ -10,7 +10,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  Alert
+  Alert,
+  FlatList,
+  StyleSheet
 } from 'react-native';
 
 import NotificationItem from '../components/NotificationItem';
@@ -104,61 +106,58 @@ export default function Notificacoes() {
           <Text className="text-gray-500 font-bold text-xl">X</Text>
         </TouchableOpacity>
       </View>
-      <ScrollView
-        className="flex-1 px-5"
-        showsVerticalScrollIndicator={false}
+      <FlatList
+        data={notifications}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => {
+          if (item.type === 'entry_request') {
+            const entryId = item.relatedEventId ?? -1;
+            const userImage = require('../assets/images/participante.png');
+            const userName  = item.user?.name ?? 'Usuário';
+            return (
+              <ParticipationRequest
+                key={item.id} 
+                entryId={entryId}
+                userImage={userImage}
+                userName={userName}
+                timestamp={item.timestamp}
+                onAccept={() => handleAccept(entryId, item.id)}
+                onDecline={() => handleDecline(entryId, item.id)}
+              />
+            );
+          } else if (item.type === 'event_start_reminder' || item.type === 'event_location') {
+            // Exibe notificações de lembrete de início e local do evento
+            return (
+              <View key={item.id} className="bg-white rounded-lg p-4 mb-4 shadow">
+                <Text className="text-lg font-semibold text-black">{item.title}</Text>
+                <Text className="text-base text-gray-700 mt-1">{item.description}</Text>
+                <Text className="text-sm italic text-blue-500 mt-2">Enviado: {item.timestamp}</Text>
+              </View>
+            );
+          } else {
+            return (
+              <NotificationItem
+                key={item.id}
+                iconName={item.iconName!}
+                title={item.title!}
+                description={item.description!}
+                timestamp={item.timestamp}
+                tag={item.tag}
+              />
+            );
+          }
+        }}
         contentContainerStyle={{ paddingBottom: 120 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      >
-        {notifications.length === 0 ? (
-          <View className="mt-12 items-center">
-            <Text className="text-lg text-gray-600">Nenhuma notificação</Text>
-            <TouchableOpacity className="mt-4 px-4 py-2" onPress={fetchNotifications}>
-              <Text className="text-blue-500">Recarregar</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          notifications.map(item => {
-            if (item.type === 'entry_request') {
-              const entryId = item.relatedEventId ?? -1;
-              const userImage = require('../assets/images/participante.png');
-              const userName  = item.user?.name ?? 'Usuário';
-              return (
-                <ParticipationRequest
-                  key={item.id} 
-                  entryId={entryId}
-                  userImage={userImage}
-                  userName={userName}
-                  timestamp={item.timestamp}
-                  onAccept={() => handleAccept(entryId, item.id)}
-                  onDecline={() => handleDecline(entryId, item.id)}
-                />
-              );
-            } else if (item.type === 'event_start_reminder' || item.type === 'event_location') {
-              // Exibe notificações de lembrete de início e local do evento
-              return (
-                <View key={item.id} className="bg-white rounded-lg p-4 mb-4 shadow">
-                  <Text className="text-lg font-semibold text-black">{item.title}</Text>
-                  <Text className="text-base text-gray-700 mt-1">{item.description}</Text>
-                  <Text className="text-sm italic text-blue-500 mt-2">Enviado: {item.timestamp}</Text>
-                </View>
-              );
-            } else {
-              return (
-                <NotificationItem
-                  key={item.id}
-                  iconName={item.iconName!}
-                  title={item.title!}
-                  description={item.description!}
-                  timestamp={item.timestamp}
-                  tag={item.tag}
-                />
-              );
-            }
-          })
-        )}
-      </ScrollView>
+      />
       <BottomNavigation />
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 16, backgroundColor: "#fff" },
+  item: { marginBottom: 12, padding: 8, borderBottomWidth: 1, borderColor: "#eee" },
+  text: { fontSize: 16 },
+  date: { fontSize: 12, color: "#888", marginTop: 4 }
+});
