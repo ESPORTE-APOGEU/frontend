@@ -18,32 +18,144 @@ import useSettingsAndress from "@/hooks/SettingsAndress";
 import LargeButton from "@/src/components/ui/Forms/LargeButtom";
 import TextInput from "@/src/components/ui/TextInput";
 import AntDesign from '@expo/vector-icons/AntDesign';
+import { UUID } from 'expo-modules-core/build/uuid/uuid.types.d';
+import AddressService from "@/src/services/AddressService";
+import { useAuth } from "@clerk/clerk-expo";
+
 export default function Andress() {
+  const formErase: Address = {
+    id: null,
+    Nome: "",
+    CEP: "",
+    Cidade: "",
+    UF: "",
+    Bairro: "",
+    Rua: "",
+    Numero: "",
+    Complemento: "",
+    padrao: false
+  };
     const [myAddress, setMyAddress] = React.useState<Address[]>([]);
-    const [loading, setLoading] = React.useState({myAddress:true, newAddress:false});
-    const [showFormAddress, setShowFormAddress] = React.useState(false);
-    const { 
-        AndressForm, 
-        findingCEP, 
-        onChangeAndressForm, 
-        onUpdateAddress, 
-        onGetAddress } = useSettingsAndress();
-
-    const handleUpdateAddress = (andress: Address) => {
-        setShowFormAddress(true);
-        onUpdateAddress(andress);
+    const [loading, setLoading] = React.useState(false);
+    const [SavingAddress, setSavingAddress] = React.useState(false);
+    const [showFormAddress, setShowFormAddress] = React.useState<boolean>(false);
+    const [AndressForm, setAndressForm] = React.useState<Address>(formErase);
+    const [findingCEP, setFindingCEP] = React.useState(false);
+    // Buscar CEP e completar campos
+    const findCEP = async (cep: string) => {
+      setFindingCEP(true);
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        const data = await response.json();
+        if (!data.erro) {
+          setAndressForm((prev) => ({
+            ...prev,
+            Nome: prev.Nome,
+            Numero: prev.Numero,
+            Complemento: prev.Complemento,
+            padrao: prev.padrao,
+            Cidade: data.localidade || "",
+            UF: data.uf || "",
+            Bairro: data.bairro || "",
+            Rua: data.logradouro || "",
+          }));
+        } else {
+          console.log("CEP not found");
+        }
+      } catch (error) {
+        console.error("Error fetching CEP:", error);
+      } finally {
+        setFindingCEP(false);
+      }
     };
+    const onChangeAndressForm = (field: keyof Address, value: string | boolean) => {
+      if (field === "CEP") {
+        const formattedValue = value.toString().replace(/\D/g, "").replace(/(\d{5})(\d{1,3})/, "$1-$2").slice(0, 9);
+        setAndressForm((prev) => ({ ...prev, [field]: formattedValue }));
 
+        if (formattedValue.length === 9) {
+          findCEP(formattedValue);
+        }
+      } else {
+        setAndressForm((prev) => ({ ...prev, [field]: value }));
+      }
+      if (field === "CEP") {
+        const formattedValue = value.toString().replace(/\D/g, "").replace(/(\d{5})(\d{1,3})/, "$1-$2").slice(0, 9);
+        setAndressForm((prev) => ({ ...prev, [field]: formattedValue }));
+  
+        if (formattedValue.length === 9) {
+          findCEP(formattedValue);
+        }
+      } else {
+        setAndressForm((prev) => ({ ...prev, [field]: value }));
+      }
+    };
+    // Comunicação com o serviço
+    const { getToken, userId } = useAuth();
+
+    const fetchAddresses = async () => {
+        setLoading(true);
+        const token = await getToken();
+        console.log("User ID:", userId);
+        console.log("Token obtido:", token);
+        const addresses = await AddressService.getAddresses(token);
+        setMyAddress([...addresses]);
+        setLoading(false);
+      };
     React.useEffect(() => {
-        setLoading((prev) => ({ ...prev, myAddress: true }));
-        const myAndress = onGetAddress();
-        myAndress.then((addresses) => setMyAddress(addresses)).catch((error) => {
-            console.error("Failed to fetch addresses:", error);
-            setMyAddress([]);
-        });
-        setLoading((prev) => ({ ...prev, myAddress: false }));
+      fetchAddresses();
     }, []);
-
+    const onSaveAddress = async () => {
+      setSavingAddress(true);
+      try {
+        const addresses = await AddressService.saveAddress(AndressForm);
+        setMyAddress(addresses);
+      } catch (error) {
+        console.error("Error saving address:", error);
+      } finally {
+        setLoading(false);
+        setShowFormAddress(false);
+        setSavingAddress(false);
+        setAndressForm({
+          id: null,
+          Nome: "",
+          CEP: "",
+          Cidade: "",
+          UF: "",
+          Bairro: "",
+          Rua: "",
+          Numero: "",
+          Complemento: "",
+          padrao: false
+        });
+      }
+    };
+  
+    const onDeleteAddress = async (id: UUID | null) => {
+      if (!id) return;
+      setLoading(true);
+      try {
+        const addresses = await AddressService.deleteAddress(id);
+        setMyAddress(addresses);
+      } catch (error) {
+        console.error("Error deleting address:", error);
+      } finally {
+        setLoading(false);
+        setShowFormAddress(false);
+      }
+    };
+    const onSetDefaultAddress = async(id: UUID|null) => {
+      setLoading(true);
+        if (!id) return;
+      console.log("Setting default address:", id);
+      const addresses = await AddressService.setDefaultAddress(id);
+      setMyAddress(addresses);
+      setLoading(false);
+    };
+    const onUpdateAddress = (andress:Address) => {
+      setShowFormAddress(true);
+      setAndressForm(andress);
+    }
     return (
         <View className="bg-[#F7FFED] min-h-full">
             <HeaderSettingsPage title="Localização"/>
@@ -60,19 +172,22 @@ export default function Andress() {
                 extraScrollHeight={Platform.OS === 'ios' ? 0 : 175} 
                 extraHeight={42}
             >
-            <ScrollView >{/*refreshControl={<RefreshControl refreshing={loading.myAddress} onRefresh={() => {setLoading((prev) => ({ ...prev, myAddress: true }))}} colors={["#07D362"]}/>}>*/}
-                {loading.myAddress ? (
+            <ScrollView refreshControl={<RefreshControl refreshing={loading} onRefresh={() => {fetchAddresses()}} colors={["#07D362"]}/>}>
+                {loading ? (
                     <ActivityIndicator size="large" color="#07D362" className="mt-10" />
                 ) : (
                     myAddress.map((address, index) => (
-                            <AndressItem 
-                            key={index} 
+                        <AndressItem 
+                            key={address.id ? address.id.toString() : `temp-${index}`} 
                             address={address} 
-                            update={() => handleUpdateAddress(address)} />
+                            update={onUpdateAddress} 
+                            setAsDefault={onSetDefaultAddress}
+                            deleteAddress={onDeleteAddress}
+                        />
                     ))
                 )}
                 <View className="mb-4 items-center" >
-                    {myAddress.length < 3 && 
+                    {(myAddress.length < 30 || loading) && 
                     <Pressable
                         onPress={() => {setShowFormAddress(!showFormAddress)}}
                         className="w-[90%] p-2 bg-[#43A047] rounded-lg items-center justify-center"
@@ -155,10 +270,14 @@ export default function Andress() {
                                 onChangeText={(text) => onChangeAndressForm("Complemento", text)}
                             />
                             <Pressable
-                                onPress={() => {setLoading((prev) => ({ ...prev, myAddress: true }))}}
-                                className="w-[100%] p-2 bg-[#43A047] rounded-lg items-center justify-center"
-                            >
-                                <Text className="text-white text-lg font-bold">Salvar</Text>
+                                onPress={() => onSaveAddress()}>
+                                <View className="w-[100%] p-2 bg-[#43A047] rounded-lg items-center justify-center">
+                                    {SavingAddress ? (
+                                        <ActivityIndicator size="small" color="#FFFFFF" />
+                                    ) : (
+                                        <Text className="text-white text-lg font-bold">Salvar</Text>
+                                    )}
+                                </View>
                             </Pressable>
                         </View>
                     )}

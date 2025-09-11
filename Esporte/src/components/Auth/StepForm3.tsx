@@ -39,7 +39,7 @@ export default function StepForm3({ onNext }: StepsSignupProps) {
       await setActive({ session: res.createdSessionId });
 
       // 2. Registra no backend
-      await fetch("https://localhost:8080/api/v1/users", {
+      await fetch("https://192.168.0.105:8081/api/v1/users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
