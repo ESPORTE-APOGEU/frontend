@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, TouchableOpacity, Dimensions } from "react-native";
 import Svg, { G, Path, Defs, Filter, FeFlood, FeColorMatrix, FeOffset, FeGaussianBlur, FeComposite, FeBlend } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from "expo-router";
 
 export default function BottomNavigation() {
   const { width } = Dimensions.get('window');
@@ -15,11 +16,12 @@ export default function BottomNavigation() {
   };
 
   const handleAddPress = () => {
-    console.log("Add pressed");
+    router.push("/public/criarEvento");
   };
 
   const handleExercisesPress = () => {
     console.log("Exercícios pressed");
+    router.push("/auth/settings");
   };
 
   const handleChatbotPress = () => {

@@ -4,6 +4,7 @@ import Slider from '@react-native-community/slider';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Location from 'expo-location';
 
+
 interface FilterModalProps {
   visible: boolean;
   onClose: () => void;
@@ -62,7 +63,7 @@ const FilterModal: React.FC<FilterModalProps> = ({ visible, onClose, onFilter })
         const pos = await Location.getCurrentPositionAsync({});
         setLocation({
           latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
+          longitude: pos.coords.longitude,
         });
         setUseCurrentLocation(true);
       } catch (err) {
@@ -148,7 +149,6 @@ const FilterModal: React.FC<FilterModalProps> = ({ visible, onClose, onFilter })
     }
     if (Platform.OS !== 'ios') setShowEndTimePicker(false);
   };
-
   return (
     <Modal
       visible={visible}
@@ -404,6 +404,7 @@ const FilterModal: React.FC<FilterModalProps> = ({ visible, onClose, onFilter })
                     justifyContent: 'center',
                     marginLeft: 2
                   }}
+
                   activeOpacity={0.7}
                 >
                   <Text style={{ color: '#666', fontWeight: 'bold', fontSize: 14 }}>?</Text>
@@ -516,6 +517,7 @@ const FilterModal: React.FC<FilterModalProps> = ({ visible, onClose, onFilter })
             </View>
             {/* Botão Limpar Filtro */}
             {(selectedSports.length > 0 || eventDate || selectedLevel !== 'Iniciante' || distance !== 0 || isTimeFilterActive) && (
+
               <TouchableOpacity
                 style={{
                   backgroundColor: '#F0F0F0',
