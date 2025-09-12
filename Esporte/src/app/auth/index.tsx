@@ -35,7 +35,7 @@ export default function PublicLayout() {
         );
         console.log(res);
         if (res.ok) {
-          setDest("/auth/home"); // ajuste p/ sua tela principal
+          setDest("/auth/settings"); // ajuste p/ sua tela principal
         } else if (res.status === 404) {
           setDest("/auth/criarConta"); // precisa completar o cadastro
         } else {
