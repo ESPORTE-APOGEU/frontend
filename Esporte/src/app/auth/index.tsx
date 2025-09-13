@@ -1,4 +1,3 @@
-// app/(public)/_layout.tsx  (exemplo)
 import { Redirect, Stack } from "expo-router";
 import { useAuth, useUser } from "@clerk/clerk-expo";
 import * as React from "react";
@@ -6,55 +5,62 @@ import * as React from "react";
 export default function PublicLayout() {
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const { user } = useUser();
-  const [dest, setDest] = React.useState<any>(null);
+  const [dest, setDest] = React.useState<string | any>(null);
 
   React.useEffect(() => {
-    console.log("aaaaaaaaaaaaaaaaa");
-    if (!isLoaded){
-      console.log("bbbbbbbb c");
-
-      return;
-
-    } 
-    // Não logado -> continua no grupo público (login)
-    console.log(isSignedIn);
+    if (!isLoaded) return;
 
     if (!isSignedIn) {
-       console.log("cccccc");
+      console.log("nao esta logado")
       setDest("/auth/sign-in");
       return;
     }
 
-    // Logado -> verifica se já tem perfil no backend
     (async () => {
-      try {
-        const jwt = await getToken({ template: "backend" });
+      // 1) token “fresco”
+      const getFresh = async () =>
+        await getToken({ template: "backend", skipCache: true });
+
+      const tryFetch = async () => {
+        const jwt = await getFresh();
+        if (!jwt) throw new Error("Sem JWT do Clerk");
         const res = await fetch(
-          `${process.env.EXPO_PUBLIC_BACKEND_URL}/api/v1/users/${user!.id}`,
+          `${process.env.EXPO_PUBLIC_BACKEND_URL}/api/v1/users/me`,
           { headers: { Authorization: `Bearer ${jwt}` } }
         );
-        console.log(res);
-        if (res.ok) {
-          setDest("/auth/home"); // ajuste p/ sua tela principal
-        } else if (res.status === 404) {
-          setDest("/auth/criarConta"); // precisa completar o cadastro
-        } else {
-          setDest("/auth/criarConta"); // fallback seguro
+        // Retry em 401 com outro token fresco
+        if (res.status === 401) {
+          const jwt2 = await getFresh();
+          if (!jwt2) return res;
+          return await fetch(
+            `${process.env.EXPO_PUBLIC_BACKEND_URL}/api/v1/users/me`,
+            { headers: { Authorization: `Bearer ${jwt2}` } }
+          );
         }
-      } catch {
-        setDest("/auth/criarConta");
+        return res;
+      };
+
+      try {
+        const res = await tryFetch();
+        if (res.ok) {
+          setDest("/auth/home");
+        } else if (res.status === 404) {
+          // não há perfil no backend ainda -> completar cadastro
+          setDest("/auth/criarConta");
+        } else if (res.status === 401) {
+          // ainda sem auth válida -> volte ao sign-in
+          setDest("/auth/sign-in");
+        } else {
+          // fallback
+          setDest("/auth/sign-in");
+        }
+      } catch (e) {
+        setDest("/auth/sign-in");
       }
     })();
   }, [isLoaded, isSignedIn]);
-
-  // Evita flicker enquanto decide
+console.log(dest)
   if (!isLoaded || (isSignedIn && !dest)) return null;
-
-  if (dest){
-    console.log("entrou aqui");
-    return <Redirect href={dest} />;
-  } 
-
-  // Usuário NÃO logado -> telas públicas (login)
+  if (dest) return <Redirect href={dest} />;
   return <Stack />;
 }
