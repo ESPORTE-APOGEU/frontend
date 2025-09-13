@@ -190,7 +190,7 @@ export default function Andress() {
                     ))
                 )}
                 <View className="mb-4 items-center" >
-                    {(myAddress.length < 30 || loading) && 
+                    {(myAddress.length <= 2 || loading) && // Limite de 2 endereços
                     <Pressable
                         onPress={() => {setShowFormAddress(!showFormAddress)}}
                         className="w-[90%] p-2 bg-[#43A047] rounded-lg items-center justify-center"
