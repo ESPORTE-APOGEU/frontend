@@ -9,10 +9,13 @@ type RatingModalProps = {
     name?: string;
     image?: any;
   };
-  onSubmit?: (rating: number, level: string | null, description: string) => void;
+  avaliationId?: number;
+  token?: string;
+  onSuccess?: () => void;
+  onError?: (error: any) => void;
 };
 
-export default function RatingModal({ visible, onClose, user, onSubmit }: RatingModalProps) {
+export default function RatingModal({ visible, onClose, user, avaliationId, token, onSuccess, onError }: RatingModalProps) {
   const [rating, setRating] = useState<number>(4);
   const [level, setLevel] = useState<string | null>('Intermediário');
   const [description, setDescription] = useState<string>('');
@@ -31,8 +34,47 @@ export default function RatingModal({ visible, onClose, user, onSubmit }: Rating
 
   const handleLevelPress = (lvl: string) => setLevel((prev) => (prev === lvl ? null : lvl));
 
-  const handleSubmit = () => {
-    onSubmit?.(rating, level, description);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!avaliationId || !token) {
+      onError?.('Avaliation ID ou token ausente');
+      onClose();
+      return;
+    }
+    setSubmitting(true);
+    try {
+      // Map level to enum
+      let skillLevel = null;
+      if (level) {
+        const map: Record<string, string> = {
+          'Iniciante': 'INICIANTE',
+          'Intermediário': 'INTERMEDIARIO',
+          'Avançado': 'AVANCADO',
+          'Semiprofissional': 'SEMIPROFISSIONAL',
+        };
+        skillLevel = map[level] || null;
+      }
+      await fetch(
+        `${process.env.EXPO_PUBLIC_BACKEND_URL}/api/v1/avaliations/${avaliationId}/respond`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            rating,
+            comment: description,
+            skillLevel,
+          }),
+        }
+      );
+      onSuccess?.();
+    } catch (e) {
+      onError?.(e);
+    }
+    setSubmitting(false);
     onClose();
   };
 
@@ -79,8 +121,12 @@ export default function RatingModal({ visible, onClose, user, onSubmit }: Rating
               className="w-full min-h-[80px] border border-gray-200 rounded-lg p-2.5 mt-1 text-top"
             />
 
-            <TouchableOpacity className="bg-[#00D36C] py-3 rounded-lg w-full items-center mt-3" onPress={handleSubmit}>
-              <Text className="text-white font-bold text-[16px]">Avaliar</Text>
+            <TouchableOpacity
+              className={`bg-[#00D36C] py-3 rounded-lg w-full items-center mt-3 ${submitting ? 'opacity-60' : ''}`}
+              onPress={handleSubmit}
+              disabled={submitting}
+            >
+              <Text className="text-white font-bold text-[16px]">{submitting ? 'Enviando...' : 'Avaliar'}</Text>
             </TouchableOpacity>
           </View>
         </View>
