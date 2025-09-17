@@ -20,7 +20,6 @@ import BottomNavigation from '../../components/FutterBar';
 import FilterModal from '../../components/FilterModal';
 import RatingModal from '../../components/RatingModal';
 import ReportModal from '../../components/ReportModal';
-
 import { useAuth } from '@clerk/clerk-expo';
 
 export interface EventResponse {
@@ -44,6 +43,7 @@ export default function Home() {
   const [searchText, setSearchText] = useState('');
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [ratingModalVisible, setRatingModalVisible] = useState(false);
+  const [pendingAvaliation, setPendingAvaliation] = useState<any>(null);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [events, setEvents] = useState<EventResponse[]>([]);
   const [loading, setLoading] = useState(false);
@@ -51,6 +51,7 @@ export default function Home() {
   const [activeFiltersCount, setActiveFiltersCount] = useState(0);
 
   const { getToken, isLoaded, isSignedIn } = useAuth();
+  const [jwtToken, setJwtToken] = useState<string | null>(null);
 
   // JWT do Clerk nos headers
   const getAuthHeaders = async (withJsonContentType = false) => {
@@ -76,21 +77,56 @@ export default function Home() {
       : err?.message || fallback;
   };
 
-  // Carrega lista inicial somente quando autenticado e com BASE_URL definida
+  // Carrega lista inicial quando autenticado + checa avaliação pendente
   useEffect(() => {
     if (!isLoaded) return;
+
+    if (!isSignedIn) {
+      setJwtToken(null);
+      setEvents([]);
+      setError('Você não está autenticado.');
+      setPendingAvaliation(null);
+      setRatingModalVisible(false);
+      return;
+    }
+
     if (!BASE_URL) {
       setError('EXPO_PUBLIC_BACKEND_URL não definida.');
       return;
     }
-    if (!isSignedIn) {
-      setEvents([]);
-      setError('Você não está autenticado.');
-      return;
-    }
-    fetchEvents();
+
+    (async () => {
+      const token =
+        (await getToken({ template: 'backend', skipCache: true })) ||
+        (await getToken({ template: 'backend' }));
+      setJwtToken(token || null);
+
+      await fetchEvents();
+      await checkPendingAvaliation(token);
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, isSignedIn]);
+
+  const checkPendingAvaliation = async (token?: string | null) => {
+    try {
+      if (!token || !BASE_URL) return;
+      const res = await fetch(`${BASE_URL}/api/v1/avaliations/pending`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data && data.length > 0) {
+        setPendingAvaliation(data[0]);
+        setRatingModalVisible(true);
+      } else {
+        setPendingAvaliation(null);
+        setRatingModalVisible(false);
+      }
+    } catch {
+      setPendingAvaliation(null);
+      setRatingModalVisible(false);
+    }
+  };
 
   const fetchEvents = async () => {
     setLoading(true);
@@ -288,13 +324,31 @@ export default function Home() {
         onFilter={handleFilter}
       />
 
-      {/* Modal de avaliação */}
+      {/* Modal de avaliação com pendência */}
       <RatingModal
         visible={ratingModalVisible}
-        onClose={() => setRatingModalVisible(false)}
-        user={{ name: 'Stefane Brito' }}
-        onSubmit={(rating, level, description) => {
-          console.log('Avaliação enviada', { rating, level, description });
+        onClose={() => {
+          setRatingModalVisible(false);
+          setPendingAvaliation(null);
+        }}
+        user={
+          pendingAvaliation
+            ? {
+                name: pendingAvaliation.toUserName,
+                image: pendingAvaliation.toUserPhoto,
+              }
+            : undefined
+        }
+        avaliationId={pendingAvaliation?.avaliationId}
+        token={jwtToken || undefined}
+        onSuccess={() => {
+          setPendingAvaliation(null);
+          setRatingModalVisible(false);
+          checkPendingAvaliation(jwtToken);
+        }}
+        onError={() => {
+          setPendingAvaliation(null);
+          setRatingModalVisible(false);
         }}
       />
 
