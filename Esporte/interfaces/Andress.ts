@@ -1,5 +1,6 @@
+import { UUID } from './../node_modules/expo-modules-core/build/uuid/uuid.types.d';
 export interface Address {
-    id: number;
+    id: UUID | null;
     Nome: string;
     CEP: string;
     Cidade: string;

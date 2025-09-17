@@ -1,5 +1,9 @@
 import { Redirect } from "expo-router";
 
 export default function Index() {
-  return <Redirect href="/auth/home" />;
+
+
+  return <Redirect href="/auth" />;
+
+
 }
