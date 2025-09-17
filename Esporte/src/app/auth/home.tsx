@@ -1,6 +1,6 @@
-// Caminho sugerido: src/app/auth/home.tsx (ajuste se precisar)
+// Caminho: src/app/auth/home.tsx
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -52,6 +52,7 @@ export default function Home() {
 
   const { getToken, isLoaded, isSignedIn } = useAuth();
 
+  // JWT do Clerk nos headers
   const getAuthHeaders = async (withJsonContentType = false) => {
     const token =
       (await getToken({ template: 'backend', skipCache: true })) ||
@@ -75,7 +76,7 @@ export default function Home() {
       : err?.message || fallback;
   };
 
-  // -------- Fetch inicial (somente autenticado) --------
+  // Carrega lista inicial somente quando autenticado e com BASE_URL definida
   useEffect(() => {
     if (!isLoaded) return;
     if (!BASE_URL) {
@@ -107,7 +108,7 @@ export default function Home() {
     }
   };
 
-  // -------- Filtro --------
+  // --- Filtro ---
   const computeFilterCount = (f: any): number => {
     if (!f) return 0;
     let count = 0;
@@ -117,7 +118,6 @@ export default function Home() {
     if (f.startTime && f.endTime) count += 1;
     if (f.maxDistanceKm) count += 1;
     return count;
-    // adicione mais regras aqui se o modal passar novos campos
   };
 
   const handleFilter = async (filter: any) => {
@@ -153,7 +153,7 @@ export default function Home() {
     }
   };
 
-  // -------- Busca com debounce (server-side /search) --------
+  // --- Busca com debounce (server-side /search) ---
   const debouncedSearch = useRef(
     debounce(async (text: string) => {
       if (!BASE_URL || !isSignedIn) return;
@@ -189,7 +189,7 @@ export default function Home() {
     debouncedSearch(text);
   };
 
-  // -------- UI --------
+  // --- Helpers de UI ---
   const priceLabel = (p: string | number | null | undefined) => {
     if (p === null || p === undefined) return 'Grátis';
     if (typeof p === 'number') return p > 0 ? `R$ ${p}` : 'Grátis';
@@ -198,7 +198,7 @@ export default function Home() {
 
   const handleEventPress = (eventId: number) => {
     console.log('Event pressed:', eventId);
-    // navegação/ação futura
+    // TODO: navegação
   };
 
   return (
