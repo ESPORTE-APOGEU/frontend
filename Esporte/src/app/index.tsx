@@ -1,5 +1,7 @@
-import { Redirect } from 'expo-router';
+import { Redirect } from "expo-router";
 
 export default function Index() {
-  return <Redirect href="/public/criarEvento" />;
+
+  return <Redirect href="/auth" />;
+
 }

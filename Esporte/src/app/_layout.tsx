@@ -5,7 +5,13 @@ import {
   Poppins_700Bold,
 } from "@expo-google-fonts/poppins";
 import { ClerkProvider } from "@clerk/clerk-expo";
-import { tokenCache } from "@clerk/clerk-expo/token-cache";
+import * as SecureStore from "expo-secure-store";
+
+const tokenCache = {
+  getToken: (key: string) => SecureStore.getItemAsync(key),
+  saveToken: (key: string, value: string) => SecureStore.setItemAsync(key, value),
+};
+
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -18,7 +24,7 @@ export default function RootLayout() {
   }
 
   return (
-    <ClerkProvider tokenCache={tokenCache}>
+    <ClerkProvider  publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!} tokenCache={tokenCache}>
       <Slot />
     </ClerkProvider>
   );
