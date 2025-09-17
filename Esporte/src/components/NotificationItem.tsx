@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { View, Text, Image } from 'react-native';
+import { formatRelativeTime } from '../utils/date';
+import { Notification } from '../app/notificacoes';
 
-// Mapeamento de nomes de ícones para os arquivos de imagem reais
-// Isso torna o componente mais flexível.
 const iconMap = {
   whatsapp: require('../assets/images/whatsapp_icon.png'),
   calendar: require('../assets/images/calendario.png'),
@@ -19,15 +19,18 @@ interface NotificationItemProps {
   tag?: { text: string; icon: 'whatsapp' | 'calendar' | 'info' };
 }
 
+type Props = { notification: Notification };
+
 export default function NotificationItem({
   iconName,
   title,
   description,
   timestamp,
-  tag
-}: NotificationItemProps) {
+  tag,
+  notification,
+}: NotificationItemProps & Props) {
   return (
-    <View className="flex-row items-start mb-6">
+    <View className="flex-row items-start mb-6 p-4 border-b">
       {/* Ícone */}
       <View className="w-10 h-10 bg-[#25D366] rounded-full items-center justify-center mr-4">
         <Image source={iconMap[iconName]} className="w-6 h-6" resizeMode="contain" />
@@ -40,7 +43,9 @@ export default function NotificationItem({
         
         {/* Rodapé da Notificação */}
         <View className="flex-row justify-between items-center mt-2">
-            <Text className="text-sm italic text-blue-500">{timestamp}</Text>
+            <Text className="text-sm italic text-blue-500">
+              {formatRelativeTime(notification.timestamp)}
+            </Text>
         </View>
       </View>
     </View>

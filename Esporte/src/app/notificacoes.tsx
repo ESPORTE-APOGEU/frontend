@@ -1,6 +1,4 @@
-// screens/Notificacoes.tsx
-
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   SafeAreaView,
   View,
@@ -11,14 +9,14 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
-  FlatList,
-  StyleSheet
+  FlatList
 } from 'react-native';
 
 import NotificationItem from '../components/NotificationItem';
 import ParticipationRequest from '../components/ParticipationRequest';
 import BottomNavigation from '../components/FutterBar';
 import { getNotifications, acceptEventEntry, declineEventEntry } from '../services/NotificationService';
+import { formatRelativeTime } from '../utils/date';
 
 export interface Notification {
   id: number;
@@ -30,6 +28,7 @@ export interface Notification {
   tag?: { text: string; icon: 'whatsapp' | 'calendar' | 'info' };
   user?: { id: number; name: string; profilePhoto?: string };
   relatedEventId?: number;
+  entryId?: number;      // ← campo agora obrigatório pra aceitar/rejeitar
 }
 
 export default function Notificacoes() {
@@ -39,11 +38,9 @@ export default function Notificacoes() {
 
   const fetchNotifications = useCallback(async () => {
     setLoading(true);
-    const userId = 3; // sempre 3
-    const data = await getNotifications(userId);
-    console.log('Resposta do backend:', data);
-    const list: Notification[] = Array.isArray(data) ? data : data.notifications ?? [];
-    setNotifications(list);
+    const userId = 3;
+    const data = (await getNotifications(userId)) as Notification[];
+    setNotifications(data);
     setLoading(false);
     setRefreshing(false);
   }, []);
@@ -108,44 +105,20 @@ export default function Notificacoes() {
       </View>
       <FlatList
         data={notifications}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={n => String(n.id)}
         renderItem={({ item }) => {
           if (item.type === 'entry_request') {
-            const entryId = item.relatedEventId ?? -1;
-            const userImage = require('../assets/images/participante.png');
-            const userName  = item.user?.name ?? 'Usuário';
             return (
               <ParticipationRequest
-                key={item.id} 
-                entryId={entryId}
-                userImage={userImage}
-                userName={userName}
+                userImage={require('../assets/images/participante.png')}
+                userName={item.user?.name ?? 'Usuário'}
                 timestamp={item.timestamp}
-                onAccept={() => handleAccept(entryId, item.id)}
-                onDecline={() => handleDecline(entryId, item.id)}
-              />
-            );
-          } else if (item.type === 'event_start_reminder' || item.type === 'event_location') {
-            // Exibe notificações de lembrete de início e local do evento
-            return (
-              <View key={item.id} className="bg-white rounded-lg p-4 mb-4 shadow">
-                <Text className="text-lg font-semibold text-black">{item.title}</Text>
-                <Text className="text-base text-gray-700 mt-1">{item.description}</Text>
-                <Text className="text-sm italic text-blue-500 mt-2">Enviado: {item.timestamp}</Text>
-              </View>
-            );
-          } else {
-            return (
-              <NotificationItem
-                key={item.id}
-                iconName={item.iconName!}
-                title={item.title!}
-                description={item.description!}
-                timestamp={item.timestamp}
-                tag={item.tag}
+                onAccept={() => item.entryId && handleAccept(item.entryId, item.id)}
+                onDecline={() => item.entryId && handleDecline(item.entryId, item.id)}
               />
             );
           }
+          return <NotificationItem notification={item} />;
         }}
         contentContainerStyle={{ paddingBottom: 120 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
@@ -154,10 +127,3 @@ export default function Notificacoes() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#fff" },
-  item: { marginBottom: 12, padding: 8, borderBottomWidth: 1, borderColor: "#eee" },
-  text: { fontSize: 16 },
-  date: { fontSize: 12, color: "#888", marginTop: 4 }
-});
