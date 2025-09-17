@@ -1,40 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  SafeAreaView, 
-  StatusBar, 
-  TouchableOpacity, 
-  Image 
+// Caminho: src/app/auth/home.tsx
+
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  SafeAreaView,
+  StatusBar,
+  TouchableOpacity,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
+import debounce from 'lodash/debounce';
+
 import SearchBar from '../../components/SearchBar';
 import EventCard from '../../components/EventCard';
 import BottomNavigation from '../../components/FutterBar';
-import axios from 'axios';
 import FilterModal from '../../components/FilterModal';
 import RatingModal from '../../components/RatingModal';
 import ReportModal from '../../components/ReportModal';
-import { debounce } from 'lodash';
-
-
-export interface EventResponse {
-  id: number;
-  name: string;
-  location: string;
-  sport: string;
-  level: string;
-  gender: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  price: string;
-  description: string;
-}
-
-const DEFAULT_IMAGE = require('../../assets/images/default_card.png');
-
 
 import { useAuth } from '@clerk/clerk-expo';
 
@@ -53,6 +38,7 @@ export interface EventResponse {
 }
 
 const DEFAULT_IMAGE = require('../../assets/images/default_card.png');
+const BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL; // ex.: http://192.168.x.x:8080
 
 export default function Home() {
   const [searchText, setSearchText] = useState('');
@@ -63,102 +49,40 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeFiltersCount, setActiveFiltersCount] = useState(0);
+
   const { getToken, isLoaded, isSignedIn } = useAuth();
-  
+
+  // JWT do Clerk nos headers
   const getAuthHeaders = async (withJsonContentType = false) => {
-    const token = await getToken({ template: 'backend' });
+    const token =
+      (await getToken({ template: 'backend', skipCache: true })) ||
+      (await getToken({ template: 'backend' }));
     if (!token) throw new Error('Não foi possível obter o token JWT.');
     const headers: Record<string, string> = {
       Authorization: `Bearer ${token}`,
       Accept: 'application/json',
     };
-    if (withJsonContentType) {
-      headers['Content-Type'] = 'application/json';
-    }
+    if (withJsonContentType) headers['Content-Type'] = 'application/json';
     return headers;
   };
 
+  const formatAxiosError = (err: any, fallback: string) => {
+    return err?.response
+      ? `Erro ${err.response.status}: ${
+          typeof err.response.data === 'string'
+            ? err.response.data
+            : err.response.data?.message || fallback
+        }`
+      : err?.message || fallback;
+  };
+
+  // Carrega lista inicial somente quando autenticado e com BASE_URL definida
   useEffect(() => {
-    fetchEvents();
-  }, []);
-
-  const fetchEvents = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await axios.get('http://192.168.100.89:8080/api/v1/events');
-      console.log('Fetched events:', res.data);
-      setEvents(res.data);
-    } catch (err: any) {
-      setEvents([]);
-      setError(err?.message || 'Erro ao conectar ao backend');
-    }
-    setLoading(false);
-  };
-
-  const handleFilter = async (filter: any) => {
-    setLoading(true);
-    setError(null);
-
-    const computeFilterCount = (f: any): number => {
-      if (!f) return 0;
-      let count = 0;
-      if (f.sports && f.sports.length > 0) count += 1; 
-      if (f.levels && f.levels.length > 0) count += 1; 
-      if (f.date) count += 1; 
-      if (f.startTime && f.endTime) count += 1; 
-      if (f.maxDistanceKm) count += 1; 
-      return count;
-    };
-
-    try {
-      if (filter === null) {
-        setActiveFiltersCount(0);
-        await fetchEvents();
-        return;
-      }
-      setActiveFiltersCount(computeFilterCount(filter));
-      const res = await axios.post('http://192.168.100.89:8080/api/v1/events/filter', filter);
-      setEvents(res.data);
-    } catch (err: any) {
-      setEvents([]);
-      setError(err?.message || 'Erro ao conectar ao backend');
-    }
-    setLoading(false);
-  };
-
-  const debouncedSearch = React.useRef(
-    debounce(async (text: string) => {
-      setLoading(true);
-      setError(null);
-      try {
-        if (!text.trim()) {
-          await fetchEvents();
-          return;
-        }
-        const res = await axios.get('http://192.168.100.89:8080/api/v1/events/search', {
-          params: { q: text }
-        });
-        setEvents(res.data);
-      } catch (err: any) {
-        setEvents([]);
-        setError(err?.message || 'Erro ao conectar ao backend');
-      }
-      setLoading(false);
-    }, 500)
-  ).current;
-
-  const handleSearchChange = (text: string) => {
-    setSearchText(text);
-    debouncedSearch(text);
-  };
-
-  const handleEventPress = (eventId: number) => {
-    console.log('Event pressed:', eventId);
-
-  useEffect(() => {
-    // só tenta buscar depois do Clerk carregar e se estiver logado
     if (!isLoaded) return;
+    if (!BASE_URL) {
+      setError('EXPO_PUBLIC_BACKEND_URL não definida.');
+      return;
+    }
     if (!isSignedIn) {
       setEvents([]);
       setError('Você não está autenticado.');
@@ -172,25 +96,28 @@ export default function Home() {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get(
-        process.env.EXPO_PUBLIC_BACKEND_URL + '/api/v1/events',
-        { headers: await getAuthHeaders() }
-      );
+      const res = await axios.get(`${BASE_URL}/api/v1/events`, {
+        headers: await getAuthHeaders(),
+      });
       setEvents(res.data);
     } catch (err: any) {
       setEvents([]);
-      const msg =
-        err?.response
-          ? `Erro ${err.response.status}: ${
-              typeof err.response.data === 'string'
-                ? err.response.data
-                : err.response.data?.message || 'Falha ao buscar eventos'
-            }`
-          : err?.message || 'Erro ao conectar ao backend';
-      setError(msg);
+      setError(formatAxiosError(err, 'Falha ao buscar eventos'));
     } finally {
       setLoading(false);
     }
+  };
+
+  // --- Filtro ---
+  const computeFilterCount = (f: any): number => {
+    if (!f) return 0;
+    let count = 0;
+    if (f.sports && f.sports.length > 0) count += 1;
+    if (f.levels && f.levels.length > 0) count += 1;
+    if (f.date) count += 1;
+    if (f.startTime && f.endTime) count += 1;
+    if (f.maxDistanceKm) count += 1;
+    return count;
   };
 
   const handleFilter = async (filter: any) => {
@@ -199,45 +126,87 @@ export default function Home() {
       setError('Você não está autenticado.');
       return;
     }
+    if (!BASE_URL) {
+      setError('EXPO_PUBLIC_BACKEND_URL não definida.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
+
     try {
       if (filter === null) {
+        setActiveFiltersCount(0);
         await fetchEvents();
         return;
       }
-      const res = await axios.post(
-        process.env.EXPO_PUBLIC_BACKEND_URL + '/api/v1/events/filter',
-        filter,
-        { headers: await getAuthHeaders(true) }
-      );
+      setActiveFiltersCount(computeFilterCount(filter));
+      const res = await axios.post(`${BASE_URL}/api/v1/events/filter`, filter, {
+        headers: await getAuthHeaders(true),
+      });
       setEvents(res.data);
     } catch (err: any) {
       setEvents([]);
-      const msg =
-        err?.response
-          ? `Erro ${err.response.status}: ${
-              typeof err.response.data === 'string'
-                ? err.response.data
-                : err.response.data?.message || 'Falha ao filtrar eventos'
-            }`
-          : err?.message || 'Erro ao conectar ao backend';
-      setError(msg);
+      setError(formatAxiosError(err, 'Falha ao filtrar eventos'));
     } finally {
       setLoading(false);
     }
   };
 
+  // --- Busca com debounce (server-side /search) ---
+  const debouncedSearch = useRef(
+    debounce(async (text: string) => {
+      if (!BASE_URL || !isSignedIn) return;
+      setLoading(true);
+      setError(null);
+      try {
+        if (!text.trim()) {
+          await fetchEvents();
+          return;
+        }
+        const res = await axios.get(`${BASE_URL}/api/v1/events/search`, {
+          params: { q: text },
+          headers: await getAuthHeaders(),
+        });
+        setEvents(res.data);
+      } catch (err: any) {
+        setEvents([]);
+        setError(formatAxiosError(err, 'Falha ao buscar eventos'));
+      } finally {
+        setLoading(false);
+      }
+    }, 500)
+  ).current;
+
+  useEffect(() => {
+    return () => {
+      debouncedSearch.cancel();
+    };
+  }, [debouncedSearch]);
+
+  const handleSearchChange = (text: string) => {
+    setSearchText(text);
+    debouncedSearch(text);
+  };
+
+  // --- Helpers de UI ---
+  const priceLabel = (p: string | number | null | undefined) => {
+    if (p === null || p === undefined) return 'Grátis';
+    if (typeof p === 'number') return p > 0 ? `R$ ${p}` : 'Grátis';
+    return p !== '0.00' && p !== '0' ? `R$ ${p}` : 'Grátis';
+  };
+
   const handleEventPress = (eventId: number) => {
     console.log('Event pressed:', eventId);
+    // TODO: navegação
   };
+
   return (
     <SafeAreaView className="flex-1 bg-[#F8F9FA]">
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* Header superior */}
-      <View className="mt-5 flex-row items-center justify-between px-4 pt-0 pb-0 bg-[#F8F9FA]">
-        {/* Logo + SearchBar */}
+      {/* Header */}
+      <View className="mt-5 flex-row items-center justify-between px-4 bg-[#F8F9FA]">
         <View className="flex-row items-center flex-1">
           <Image
             source={require('../../assets/images/logo_home.png')}
@@ -252,13 +221,12 @@ export default function Home() {
             />
           </View>
         </View>
-        {/* Notificação */}
         <TouchableOpacity className="ml-2.5">
           <Ionicons name="notifications-outline" size={26} color="#007AFF" />
         </TouchableOpacity>
       </View>
 
-      {/* Título e botão de filtro */}
+      {/* Título + Filtro */}
       <View className="flex-row items-center justify-between mt-2 mb-2 px-5">
         <Text className="text-[22px] font-bold">Sports Events</Text>
         <TouchableOpacity
@@ -268,7 +236,9 @@ export default function Home() {
           <Text className="text-white font-bold mr-1.5">Filter</Text>
           {activeFiltersCount > 0 ? (
             <View className="w-[22px] h-[22px] rounded-full bg-white items-center justify-center">
-              <Text className="text-[#00D36C] font-bold text-[12px]">{activeFiltersCount}</Text>
+              <Text className="text-[#00D36C] font-bold text-[12px]">
+                {activeFiltersCount}
+              </Text>
             </View>
           ) : (
             <Ionicons name="filter" size={18} color="#fff" />
@@ -276,7 +246,7 @@ export default function Home() {
         </TouchableOpacity>
       </View>
 
-      {/* Lista de eventos */}
+      {/* Lista */}
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
@@ -285,80 +255,29 @@ export default function Home() {
         {loading ? (
           <Text className="text-center mt-10">Carregando eventos...</Text>
         ) : error ? (
-          <View className="mt-10">
+          <View className="mt-10 px-5">
             <Text className="text-center text-red-600">Erro: {error}</Text>
           </View>
         ) : events.length === 0 ? (
-          <View className="mt-10">
+          <View className="mt-10 px-5">
             <Text className="text-center">Nenhum evento encontrado.</Text>
-            <Text className="text-[12px] text-gray-400 mt-2.5 text-center">Debug: {JSON.stringify(events)}</Text>
+            <Text className="text-[12px] text-gray-400 mt-2.5 text-center">
+              Debug: {JSON.stringify(events)}
+            </Text>
           </View>
         ) : (
-          // Remova o filtro local, apenas renderize os eventos recebidos
-          events.map((event) => {
-            let priceLabel = 'Grátis';
-            if (event.price !== undefined && event.price !== null) {
-              if (typeof event.price === 'number') {
-                priceLabel = event.price > 0 ? `R$ ${event.price}` : 'Grátis';
-              } else if (typeof event.price === 'string') {
-                priceLabel = event.price !== '0.00' && event.price !== '0' ? `R$ ${event.price}` : 'Grátis';
-              }
-            }
-            return (
-              <EventCard
-                key={event.id}
-                eventName={event.name}
-                location={event.location}
-                date={event.date}
-                participants={0}
-                image={DEFAULT_IMAGE}
-                price={priceLabel}
-                onPress={() => handleEventPress(event.id)}
-              />
-            );
-          })
-          <Text style={{ textAlign: 'center', marginTop: 40 }}>Carregando eventos...</Text>
-        ) : error ? (
-          <View style={{ marginTop: 40 }}>
-            <Text style={{ textAlign: 'center', color: 'red' }}>Erro: {error}</Text>
-          </View>
-        ) : events.length === 0 ? (
-          <View style={{ marginTop: 40 }}>
-            <Text style={{ textAlign: 'center' }}>Nenhum evento encontrado.</Text>
-            <Text style={{ fontSize: 12, color: '#888', marginTop: 10, textAlign: 'center' }}>Debug: {JSON.stringify(events)}</Text>
-          </View>
-        ) : (
-          events
-            .filter(event => {
-              if (!searchText.trim()) return true;
-              const txt = searchText.toLowerCase();
-              return (
-                event.name.toLowerCase().includes(txt) ||
-                event.location.toLowerCase().includes(txt)
-              );
-            })
-            .map((event) => {
-              let priceLabel = 'Grátis';
-              if (event.price !== undefined && event.price !== null) {
-                if (typeof event.price === 'number') {
-                  priceLabel = event.price > 0 ? `R$ ${event.price}` : 'Grátis';
-                } else if (typeof event.price === 'string') {
-                  priceLabel = event.price !== '0.00' && event.price !== '0' ? `R$ ${event.price}` : 'Grátis';
-                }
-              }
-              return (
-                <EventCard
-                  key={event.id}
-                  eventName={event.name}
-                  location={event.location}
-                  date={event.date}
-                  participants={0}
-                  image={DEFAULT_IMAGE}
-                  price={priceLabel}
-                  onPress={() => handleEventPress(event.id)}
-                />
-              );
-            })
+          events.map((ev) => (
+            <EventCard
+              key={ev.id}
+              eventName={ev.name}
+              location={ev.location}
+              date={ev.date}
+              participants={0}
+              image={DEFAULT_IMAGE}
+              price={priceLabel(ev.price)}
+              onPress={() => handleEventPress(ev.id)}
+            />
+          ))
         )}
       </ScrollView>
 
@@ -369,7 +288,7 @@ export default function Home() {
         onFilter={handleFilter}
       />
 
-      {/* Modal de avaliação de usuário */}
+      {/* Modal de avaliação */}
       <RatingModal
         visible={ratingModalVisible}
         onClose={() => setRatingModalVisible(false)}
@@ -379,7 +298,7 @@ export default function Home() {
         }}
       />
 
-      {/* Modal de report (visualização) */}
+      {/* Modal de report */}
       <ReportModal
         visible={reportModalVisible}
         onClose={() => setReportModalVisible(false)}
@@ -388,7 +307,6 @@ export default function Home() {
         }}
       />
 
-      {/* Barra de navegação inferior */}
       <BottomNavigation />
     </SafeAreaView>
   );

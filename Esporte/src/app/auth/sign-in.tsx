@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -9,68 +9,87 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import TextInput from "../../components/ui/TextInput";
-import { useSignIn, useSSO } from "@clerk/clerk-expo";
+import { useSignIn, useSSO, useAuth } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import * as SecureStore from "expo-secure-store";
-import { useUser } from "@clerk/clerk-expo";
 
 const GOOGLE_ICON = require("../../assets/images/google-logo.png");
 const APP_LOGO = require("../../assets/images/app-logo.png");
 
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+
 export default function LoginScreen() {
   const { signIn, setActive, isLoaded } = useSignIn();
-  const router = useRouter();
   const { startSSOFlow } = useSSO();
+  const { getToken } = useAuth();
+  const router = useRouter();
 
   const [emailAddress, setEmailAddress] = React.useState("");
   const [password, setPassword] = React.useState("");
 
-  const handleCreateAccountPress = () => {
-    router.replace("/auth/criarConta");
-  };
+  // Decide a rota após autenticar no Clerk
+  const routeAfterAuth = useCallback(async () => {
+    try {
+      const fresh =
+        (await getToken({ template: "backend", skipCache: true })) ||
+        (await getToken({ template: "backend" }));
+      if (!fresh) {
+        router.replace("/auth/sign-in");
+        return;
+      }
+      const res = await fetch(`${BACKEND_URL}/api/v1/users/me`, {
+        headers: { Authorization: `Bearer ${fresh}` },
+      });
 
+      if (res.ok) {
+        router.replace("/auth/home");
+      } else if (res.status === 404) {
+        router.replace("/auth/criarConta");
+      } else if (res.status === 401) {
+        router.replace("/auth/sign-in");
+      } else {
+        router.replace("/auth/sign-in");
+      }
+    } catch {
+      router.replace("/auth/sign-in");
+    }
+  }, [getToken, router]);
+
+  // E-mail / senha
   const onSignInPress = async () => {
     if (!isLoaded) return;
-
     try {
-      const signInAttempt = await signIn.create({
+      const attempt = await signIn.create({
         identifier: emailAddress,
         password,
       });
 
-      if (signInAttempt.status === "complete") {
-        await setActive({ session: signInAttempt.createdSessionId });
-
-        router.replace("/confirmar_senha"); /////// TROCAR PARA A ROTA CORRETA DEPOIS
+      if (attempt.status === "complete") {
+        await setActive({ session: attempt.createdSessionId });
+        await routeAfterAuth();
       } else {
-        console.error(
-          "Login incompleto:",
-          JSON.stringify(signInAttempt, null, 2)
-        );
+        console.error("Login incompleto:", JSON.stringify(attempt, null, 2));
       }
     } catch (err) {
       console.error("Erro ao logar:", err);
     }
   };
 
+  // Social (Google/Apple)
   const handleSocialSignIn = useCallback(
     async (strategy: "oauth_google" | "oauth_apple") => {
       try {
-        // Opcional: melhora UX no Android
         await WebBrowser.warmUpAsync();
-
         const { createdSessionId, setActive: activate } = await startSSOFlow({
           strategy,
         });
-
         if (createdSessionId) {
           if (!activate) {
             console.error("Clerk ainda não inicializou o setActive");
             return;
           }
           await activate({ session: createdSessionId });
-          router.replace("/auth/criarConta");
+          await routeAfterAuth();
         }
       } catch (err) {
         console.error("Erro no SSO:", err);
@@ -78,8 +97,12 @@ export default function LoginScreen() {
         WebBrowser.coolDownAsync();
       }
     },
-    [startSSOFlow, router]
+    [startSSOFlow, routeAfterAuth]
   );
+
+  const handleCreateAccountPress = () => {
+    router.replace("/auth/criarConta");
+  };
 
   return (
     <KeyboardAvoidingView
@@ -175,7 +198,7 @@ export default function LoginScreen() {
         </View>
 
         {/* Botões sociais */}
-        <View className="flex-row justify-center mt-4 w-full space-x-6">
+        <View className="flex-row justify-center mt-4 w-full">
           {/* Apple */}
           <TouchableOpacity
             className="
@@ -184,6 +207,7 @@ export default function LoginScreen() {
               items-center justify-center
               w-[14vw] h-[14vw]
               rounded-full
+              mr-6
             "
             onPress={() => handleSocialSignIn("oauth_apple")}
           >
