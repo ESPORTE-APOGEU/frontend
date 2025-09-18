@@ -2,6 +2,7 @@
 import { api } from "./Api";
 
 export type Gender = "MALE" | "FEMALE" | "OTHER" | "PREFER_NOT_SAY";
+export type Sport = { id: number; name: string };
 
 export type User = {
   id: string;
@@ -11,7 +12,7 @@ export type User = {
   birthday?: string | null;
   gender?: Gender | null;
   city?: string | null;
-  sports: string[];
+  sports: Sport[];
   photo?: string | null;
 };
 

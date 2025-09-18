@@ -20,6 +20,7 @@ import { RegisteredEvents } from "@/src/components/profile/RegisteredEvents";
 import { Friends } from "@/src/components/profile/Friends";
 import { useProfile } from "@/hooks/useProfile";
 import { attachAuth } from "@/src/services/Api";
+import { Sport } from "@/src/services/UserService";
 
 export default function ProfileScreen() {
   const [tab, setTab] = useState<ActionTabKey>("participados");
@@ -37,9 +38,12 @@ export default function ProfileScreen() {
 
   const handleAddSport = async (sport: string) => {
     const current = data?.sports ?? [];
-    if (current.includes(sport)) return;
+    const sportsAsStrings = current.map((s: Sport | string) =>
+      typeof s === "string" ? s : s.name
+    );
+    if (sportsAsStrings.includes(sport)) return;
     try {
-      await saveSports([...current, sport]);
+      await saveSports([...sportsAsStrings, sport]);
     } catch (e: any) {
       Alert.alert("Erro", e?.message ?? "Não foi possível adicionar o esporte");
     }
@@ -48,7 +52,10 @@ export default function ProfileScreen() {
   const handleRemoveSport = async (sport: string) => {
     const current = data?.sports ?? [];
     try {
-      await saveSports(current.filter((s: string) => s !== sport));
+      const sportsAsStrings = current.map((s: Sport | string) =>
+        typeof s === "string" ? s : s.name
+      );
+      await saveSports(sportsAsStrings.filter((s: string) => s !== sport));
     } catch (e: any) {
       Alert.alert("Erro", e?.message ?? "Não foi possível remover o esporte");
     }
@@ -172,7 +179,13 @@ export default function ProfileScreen() {
 
           <View className="mb-4">
             <SportsSection
-              sports={data?.sports ?? []}
+              sports={
+                data?.sports
+                  ? data.sports.map((s: Sport | string) =>
+                      typeof s === "string" ? s : s.name
+                    )
+                  : []
+              }
               onAddSport={handleAddSport}
               onRemoveSport={handleRemoveSport}
             />
