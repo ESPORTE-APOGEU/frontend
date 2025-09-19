@@ -6,12 +6,14 @@ interface SearchBarProps {
   placeholder?: string;
   onChangeText?: (text: string) => void;
   value?: string;
+  onSearch?: (text: string) => void; // nova prop
 }
 
 export default function SearchBar({ 
   placeholder = "What are you looking for?", 
   onChangeText, 
-  value 
+  value,
+  onSearch
 }: SearchBarProps) {
   return (
     <View className="flex-row items-center bg-white rounded-3xl px-6 py-2"
@@ -34,6 +36,7 @@ export default function SearchBar({
         value={value}
         onChangeText={onChangeText}
         style={{ fontSize: 14 }}
+        onSubmitEditing={e => onSearch?.(e.nativeEvent.text)}
       />
     </View>
   );
