@@ -12,11 +12,9 @@ import LargeButton from "../ui/Forms/LargeButtom";
 import DateInput from "../ui/Forms/DateInput";
 import DropDownInput from "../ui/Forms/DropDownInput";
 import Autocomplete from "../ui/Forms/AutoCompleteTags";
-import TextInput from "../ui/Forms/TextInput"; // seu input estilizado
+import TextInput from "../ui/Forms/TextInput";
 import { useAuth, useSignUp, useUser } from "@clerk/clerk-expo";
-import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
-
 
 interface StepsSignupProps {
   onNext?: () => void;
@@ -25,19 +23,23 @@ interface StepsSignupProps {
 }
 type Option = { label: string; value: string };
 
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+
 export default function StepForm3({ form, setForm }: StepsSignupProps) {
-    const router = useRouter();        
+  const router = useRouter();
 
   // estados do formulário
   const [selectedCity, setSelectedCity] = React.useState(form.city ?? "");
-  const [selectedSports, setSelectedSports] = React.useState<string[]>(form.sports ?? []);
+  const [selectedSports, setSelectedSports] = React.useState<string[]>(
+    form.sports ?? []
+  );
 
   // Clerk
   const { isSignedIn, getToken } = useAuth();
   const { user, isLoaded: userLoaded } = useUser();
   const { signUp, setActive, isLoaded: signUpLoaded } = useSignUp();
 
-  // verificação por código
+  // verificação por código (e-mail/senha)
   const [codeModalVisible, setCodeModalVisible] = React.useState(false);
   const [emailCode, setEmailCode] = React.useState("");
   const [loading, setLoading] = React.useState(false);
@@ -50,63 +52,126 @@ export default function StepForm3({ form, setForm }: StepsSignupProps) {
     setForm((prev) => ({ ...prev, city: selectedCity }));
   }, [selectedCity]);
 
-  const registerInBackend = async (jwtToken: string, clerkUserId: string) => {
-    const normalizedGender =
-      typeof form.gender === 'string'
-        ? (form.gender.charAt(0).toUpperCase() + form.gender.slice(1).toLowerCase()) 
-        : form.gender;
-    console.log("register:" + jwtToken);
-    const resp = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/api/v1/users`, {
-      method: "POST",
+  // -------- helpers de auth/fetch --------
+
+  const getFreshToken = async () => {
+    // tenta token “fresco”; se vier null, tenta sem skipCache como fallback
+    return (
+      (await getToken({ template: "backend", skipCache: true })) ||
+      (await getToken({ template: "backend" }))
+    );
+  };
+
+  const fetchWithJwt = async (
+    path: string,
+    init?: RequestInit,
+    doRetry401 = true
+  ): Promise<Response> => {
+    let jwt = await getFreshToken();
+    if (!jwt) throw new Error("Não foi possível obter o token do Clerk.");
+
+    const res = await fetch(`${BACKEND_URL}${path}`, {
+      ...init,
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${jwtToken}`,
-      },
-      body: JSON.stringify({
-        id: clerkUserId,
-        name: form.name,
-        email: form.email,
-        birthday: form.birthday,
-        gender: normalizedGender,
-        city: form.city,
-        sports: form.sports,
-      }),
+        ...(init?.headers || {}),
+        Authorization: `Bearer ${jwt}`,
+      } as any,
     });
-    if (!resp.ok) {
-      const txt = await resp.text().catch(() => "");
-      throw new Error(`Falha ao registrar no backend (${resp.status}): ${txt}`);
+
+    if (res.status === 401 && doRetry401) {
+      // token possivelmente cacheado/antigo → pega outro e tenta de novo
+      jwt = await getFreshToken();
+      if (!jwt) return res;
+      return fetch(`${BACKEND_URL}${path}`, {
+        ...init,
+        headers: {
+          ...(init?.headers || {}),
+          Authorization: `Bearer ${jwt}`,
+        } as any,
+      });
+    }
+
+    return res;
+  };
+
+  const normalizeGender = (g: any): string | null => {
+    if (!g) return null;
+    const s = typeof g === "string" ? g : String(g);
+    return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+  };
+
+  const serializePayload = () => {
+    const birthday =
+      form.birthday instanceof Date
+        ? form.birthday.toISOString().slice(0, 10) // yyyy-mm-dd
+        : form.birthday ?? null;
+
+    return {
+      name: form.name || "",
+      email: form.email || "",
+      birthday,
+      gender: normalizeGender(form.gender),
+      city: form.city || "",
+      sports: Array.isArray(form.sports) ? form.sports : [],
+    };
+  };
+
+  const checkProfileExists = async (): Promise<"exists" | "missing" | "unauth" | "error"> => {
+    try {
+      const res = await fetchWithJwt(`/api/v1/users/me`, { method: "GET" });
+      if (res.ok) return "exists";
+      if (res.status === 404) return "missing";
+      if (res.status === 401) return "unauth";
+      return "error";
+    } catch {
+      return "error";
     }
   };
+
+  const upsertMe = async () => {
+    const body = serializePayload();
+    const res = await fetchWithJwt(`/api/v1/users/me`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      throw new Error(`Falha ao salvar perfil (${res.status}): ${txt}`);
+    }
+  };
+
+  // -------- handlers principais --------
 
   const handleCreateAccount = async () => {
     try {
       setLoading(true);
 
-      // SSO (Google/Apple) já está logado -> sem código
-
-      // FLUXO SSO (já logado)
+      // 1) Se já estiver logado (SSO), tente pular direto:
       if (isSignedIn && userLoaded && user) {
-        const token = await getToken({ template: "backend" });
-        if (!token) throw new Error("Não foi possível obter o token JWT.");
-
-        await Clipboard.setStringAsync(token);
-        await registerInBackend(token, user.id);
-
-        // Opção A: navegar direto
-        router.replace("/auth/home");
-
-
-        return;
+        const state = await checkProfileExists();
+        if (state === "exists") {
+          router.replace("/auth/home");
+          return;
+        }
+        if (state === "missing") {
+          await upsertMe();
+          router.replace("/auth/home");
+          return;
+        }
+        if (state === "unauth") {
+          Alert.alert("Sessão inválida", "Faça login novamente.");
+          return;
+        }
+        throw new Error("Não foi possível verificar seu perfil.");
       }
 
-      // E-mail/senha: cria no Clerk e envia o código
+      // 2) Fluxo e-mail/senha: cria no Clerk e envia código
       if (!signUpLoaded) throw new Error("Clerk SignUp ainda não carregou.");
       if (!signUp || !setActive) throw new Error("Clerk SignUp não inicializado.");
 
       await signUp.create({ emailAddress: form.email, password: form.password });
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-
-      // abre modal para digitar o código
       setCodeModalVisible(true);
     } catch (err: any) {
       console.error(err);
@@ -120,31 +185,36 @@ export default function StepForm3({ form, setForm }: StepsSignupProps) {
     try {
       setLoading(true);
       if (!signUp || !setActive) throw new Error("Clerk SignUp não inicializado.");
+
       const code = emailCode.trim();
       if (!code) throw new Error("Informe o código que enviamos ao seu e-mail.");
 
       const verification = await signUp.attemptEmailAddressVerification({ code });
-
       if (verification.status !== "complete") {
         throw new Error("Código inválido ou expirado.");
       }
 
       await setActive({ session: verification.createdSessionId });
 
-      const token = await getToken({ template: "backend" });
-      if (!token) throw new Error("Não foi possível obter o token JWT.");
-
-      const clerkUserId = user?.id || verification?.createdUserId || "";
-      if (!clerkUserId) throw new Error("Não foi possível obter o ID do usuário.");
-
-      await Clipboard.setStringAsync(token);
-      await registerInBackend(token, clerkUserId);
-
-      setCodeModalVisible(false);
-      setEmailCode("");
-      Alert.alert("Sucesso", "Conta criada e vinculada com sucesso!", [
-        { text: "Ir para eventos", onPress: () => router.replace("/auth/home") },
-      ]);
+      // agora autenticado → mesmo fluxo do SSO: checa/me e upsert se precisar
+      const state = await checkProfileExists();
+      if (state === "exists") {
+        setCodeModalVisible(false);
+        setEmailCode("");
+        router.replace("/auth/home");
+        return;
+      }
+      if (state === "missing") {
+        await upsertMe();
+        setCodeModalVisible(false);
+        setEmailCode("");
+        router.replace("/auth/home");
+        return;
+      }
+      if (state === "unauth") {
+        throw new Error("Sessão inválida após verificação. Tente entrar novamente.");
+      }
+      throw new Error("Não foi possível verificar seu perfil após o código.");
     } catch (err: any) {
       console.error(err);
       Alert.alert("Erro", err?.message ?? "Erro ao confirmar código");
@@ -164,6 +234,7 @@ export default function StepForm3({ form, setForm }: StepsSignupProps) {
     }
   };
 
+  // -------- opções IBGE --------
   const getCidadesFormatadas = async (): Promise<Option[]> => {
     const res = await fetch("https://servicodados.ibge.gov.br/api/v1/localidades/municipios");
     if (!res.ok) throw new Error("Erro ao buscar cidades");
@@ -182,13 +253,6 @@ export default function StepForm3({ form, setForm }: StepsSignupProps) {
 
   return (
     <View>
-      {/*<TextInput
-          label="Idade"
-          placeholder="digite a sua idade"
-          keyboardType="numeric"
-          value={form.age ? String(form.age) : ''}
-          onChangeText={(text) => setForm({ ...form, age: Number(text) })}
-        />*/}
       <DateInput
         label="Data de Nascimento"
         value={form.birthday}
@@ -196,6 +260,7 @@ export default function StepForm3({ form, setForm }: StepsSignupProps) {
         placeholder="Selecione sua data de nascimento"
         maximumDate={new Date(2020, 11, 31)}
       />
+
       <DropDownInput
         label="Gênero"
         selectedValue={form.gender ?? ""}
@@ -223,6 +288,7 @@ export default function StepForm3({ form, setForm }: StepsSignupProps) {
           setForm({ ...form, city: "" });
         }}
       />
+
       <DropDownInput
         label="Esportes"
         selectedValue={""}
@@ -243,13 +309,11 @@ export default function StepForm3({ form, setForm }: StepsSignupProps) {
         placeholder="Selecione um esporte"
         mode="dialog"
       />
-      {/* Tags selecionadas para seleção múltipla */}
+
       {selectedSports.length > 0 && (
         <View className="mb-2 w-full items-center">
           <View className="w-[80%]">
-            <Text className="font-[Poppins-Bold] mb-2 text-sm">
-              Selecionados:
-            </Text>
+            <Text className="font-[Poppins-Bold] mb-2 text-sm">Selecionados:</Text>
             <View className="flex-row flex-wrap">
               {selectedSports.map((value) => (
                 <View
@@ -259,9 +323,7 @@ export default function StepForm3({ form, setForm }: StepsSignupProps) {
                   <Text className="text-white text-sm">{value}</Text>
                   <TouchableOpacity
                     onPress={() =>
-                      setSelectedSports(
-                        selectedSports.filter((v) => v !== value)
-                      )
+                      setSelectedSports(selectedSports.filter((v) => v !== value))
                     }
                     className="ml-2"
                   >
@@ -273,19 +335,22 @@ export default function StepForm3({ form, setForm }: StepsSignupProps) {
           </View>
         </View>
       )}
-      <LargeButton
-        onPress={() => {
-          handleCreateAccount();
-        }}
-        title="Criar Conta"
-      />
 
-   <Modal visible={codeModalVisible} transparent animationType="slide" onRequestClose={() => setCodeModalVisible(false)}>
+      <LargeButton onPress={handleCreateAccount} title={loading ? "Enviando..." : "Criar Conta"} />
+
+      {/* Modal de verificação por e-mail (somente para e-mail/senha) */}
+      <Modal
+        visible={codeModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCodeModalVisible(false)}
+      >
         <View className="flex-1 bg-[rgba(0,0,0,0.4)] items-center justify-center px-6">
           <View className="w-full bg-white rounded-2xl p-5">
             <Text className="text-lg font-bold mb-2">Verificar e-mail</Text>
             <Text className="text-gray-600 mb-4">
-              Enviamos um código para <Text className="font-semibold">{form.email}</Text>. Digite-o abaixo para confirmar.
+              Enviamos um código para{" "}
+              <Text className="font-semibold">{form.email}</Text>. Digite-o abaixo para confirmar.
             </Text>
 
             <TextInput
@@ -296,7 +361,10 @@ export default function StepForm3({ form, setForm }: StepsSignupProps) {
               keyboardType="number-pad"
             />
 
-            <LargeButton onPress={handleConfirmCode} title={loading ? "Confirmando..." : "Confirmar código"} />
+            <LargeButton
+              onPress={handleConfirmCode}
+              title={loading ? "Confirmando..." : "Confirmar código"}
+            />
 
             <TouchableOpacity onPress={handleResendCode} style={{ marginTop: 10 }}>
               <Text className="text-center underline">Reenviar código</Text>
@@ -314,7 +382,6 @@ export default function StepForm3({ form, setForm }: StepsSignupProps) {
           </View>
         </View>
       </Modal>
-
     </View>
   );
 }
