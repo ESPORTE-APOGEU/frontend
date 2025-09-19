@@ -13,6 +13,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import debounce from 'lodash/debounce';
+import { useRouter, Href } from 'expo-router';
+
 
 import SearchBar from '../../components/SearchBar';
 import EventCard from '../../components/EventCard';
@@ -40,6 +42,8 @@ const DEFAULT_IMAGE = require('../../assets/images/default_card.png');
 const BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL; // ex.: http://192.168.x.x:8080
 
 export default function Home() {
+  const router = useRouter();
+
   const [searchText, setSearchText] = useState('');
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [ratingModalVisible, setRatingModalVisible] = useState(false);
@@ -232,10 +236,9 @@ export default function Home() {
     return p !== '0.00' && p !== '0' ? `R$ ${p}` : 'Grátis';
   };
 
-  const handleEventPress = (eventId: number) => {
-    console.log('Event pressed:', eventId);
-    // TODO: navegação
-  };
+const handleEventPress = (eventId: number) => {
+  router.push((`/auth/event/${String(eventId)}`) as Href);
+};
 
   return (
     <SafeAreaView className="flex-1 bg-[#F8F9FA]">
