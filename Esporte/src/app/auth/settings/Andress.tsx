@@ -14,7 +14,6 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import { Address } from "@/interfaces/Andress";
 import AndressItem from "@/src/components/settings/AndressItem";
 import HeaderSettingsPage from "@/src/components/settings/HeaderSettingsPage";
-import useSettingsAndress from "@/hooks/SettingsAndress";
 import LargeButton from "@/src/components/ui/Forms/LargeButtom";
 import TextInput from "@/src/components/ui/TextInput";
 import AntDesign from '@expo/vector-icons/AntDesign';
@@ -95,7 +94,7 @@ export default function Andress() {
 
     const fetchAddresses = async () => {
         setLoading(true);
-        const token = await getToken();
+        const token = await getToken({ template: "backend" });
         console.log("User ID:", userId);
         console.log("Token obtido:", token);
         const addresses = await AddressService.getAddresses(token);
@@ -107,8 +106,9 @@ export default function Andress() {
     }, []);
     const onSaveAddress = async () => {
       setSavingAddress(true);
+      const token = await getToken({ template: "backend" });
       try {
-        const addresses = await AddressService.saveAddress(AndressForm);
+        const addresses = await AddressService.saveAddress(token, AndressForm);
         setMyAddress(addresses);
       } catch (error) {
         console.error("Error saving address:", error);
@@ -134,24 +134,27 @@ export default function Andress() {
     const onDeleteAddress = async (id: UUID | null) => {
       if (!id) return;
       setLoading(true);
-      try {
-        const addresses = await AddressService.deleteAddress(id);
-        setMyAddress(addresses);
-      } catch (error) {
-        console.error("Error deleting address:", error);
-      } finally {
-        setLoading(false);
+    const token = await getToken({ template: "backend" });
+    try {
+      const addresses = await AddressService.deleteAddress(token, id);
+      setMyAddress(addresses);
+    } catch (error) {
+      console.error("Error deleting address:", error);
+    } finally {
+      setLoading(false);
         setShowFormAddress(false);
       }
     };
     const onSetDefaultAddress = async(id: UUID|null) => {
       setLoading(true);
-        if (!id) return;
-      console.log("Setting default address:", id);
-      const addresses = await AddressService.setDefaultAddress(id);
+      if (!id) return;
+      const token = await getToken({ template: "backend" });
+      const addresses = await AddressService.setDefaultAddress(token, id);
+      console.log("Response from setting default address:", addresses);
       setMyAddress(addresses);
       setLoading(false);
     };
+    // Atualiza formulário e mostra apenas, envio é feito em onSaveAddress
     const onUpdateAddress = (andress:Address) => {
       setShowFormAddress(true);
       setAndressForm(andress);
@@ -187,7 +190,7 @@ export default function Andress() {
                     ))
                 )}
                 <View className="mb-4 items-center" >
-                    {(myAddress.length < 30 || loading) && 
+                    {(myAddress.length <= 2 || loading) && // Limite de 2 endereços
                     <Pressable
                         onPress={() => {setShowFormAddress(!showFormAddress)}}
                         className="w-[90%] p-2 bg-[#43A047] rounded-lg items-center justify-center"
