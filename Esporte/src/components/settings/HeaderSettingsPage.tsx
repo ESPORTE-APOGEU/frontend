@@ -7,7 +7,7 @@ interface HeaderSettingsPageProps {
 export default function HeaderSettingsPage({ title }: HeaderSettingsPageProps) {
   return (
     <View className="p-4 w-full flex flex-row justify-between items-center px-6 mt-8">
-      <BackButtonIcon color="black" onPress={() => {router.back()}} />
+      <BackButtonIcon color="black" onPress={() => {router.push("/auth/settings")}} />
       <Text className="text-2xl font-normal">{title}</Text>
         <View className="w-4" /> {/* Placeholder for symmetry */}
     </View>
