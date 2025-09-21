@@ -48,7 +48,7 @@ export default function BottomNavigation() {
   };
 
   const handleChatbotPress = () => {
-    console.log("Chatbot pressed");
+      router.push("/auth/settings");
   };
 
   return (
