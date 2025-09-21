@@ -40,7 +40,7 @@ export default function EditProfileScreen({ navigation }: any) {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.avatarBox}>
           <Image
-            source={require("../assets/images/Ellipse 27.png")}
+            source={require("../../../assets/images/Ellipse 27.png")}
             style={styles.avatar}
           />
           <TouchableOpacity onPress={onEditPhoto} style={styles.editPhotoBtn}>

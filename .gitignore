@@ -1,6 +1,4 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
-# dependencies
 node_modules/
 
 # Expo
@@ -38,3 +36,8 @@ yarn-error.*
 app-example
 
 expo-env.d.ts
+
+.env
+Esporte/package-lock.json
+Esporte/package-lock.json
+
