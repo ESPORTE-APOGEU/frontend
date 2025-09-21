@@ -50,12 +50,10 @@ export default function AutoCompleteTags({
       setIsLoading(true);
       awaitOptions()
         .then((data) => {
-          console.log(`AutoComplete (${label}): Opções carregadas:`, data.length, "itens");
           setOptionsList(data);
           setHasLoaded(true);
         })
         .catch((error) => {
-          console.error(`AutoComplete (${label}): Erro ao carregar opções:`, error);
         })
         .finally(() => {
           setIsLoading(false);

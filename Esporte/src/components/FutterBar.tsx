@@ -22,11 +22,11 @@ export default function BottomNavigation() {
   const { signOut } = useAuth();
 
   const handleHomePress = () => {
-    console.log("Home pressed");
+    router.push("/auth/home");
   };
 
   const handleSearchPress = () => {
-    console.log("Search pressed");
+    router.push("/auth/profileScreen");
   };
 
   const handleAddPress = () => {

@@ -1,10 +1,8 @@
+// components/profile/ProfileInfo.tsx
 import React from "react";
 import { View, Text, Image } from "react-native";
 
-type InfoRowProps = {
-  text: string;
-  iconPath: any; // require caminho da imagem
-};
+type InfoRowProps = { text: string; iconPath: any };
 
 const InfoRow = ({ text, iconPath }: InfoRowProps) => (
   <View className="flex-row items-center mb-2">
@@ -17,18 +15,26 @@ const InfoRow = ({ text, iconPath }: InfoRowProps) => (
   </View>
 );
 
-export const ProfileInfo = () => (
+export const ProfileInfo = ({
+  ageText,
+  cityText,
+  jobText,
+}: {
+  ageText: string;
+  cityText: string;
+  jobText: string;
+}) => (
   <View className="px-7 mt-3">
     <InfoRow
-      text="28 anos"
+      text={ageText}
       iconPath={require("../../assets/images/calendar-icon.png")}
     />
     <InfoRow
-      text="Goiânia, Goiás"
+      text={cityText}
       iconPath={require("../../assets/images/pin-icon.png")}
     />
     <InfoRow
-      text="Designer"
+      text={jobText}
       iconPath={require("../../assets/images/job-icon.png")}
     />
   </View>

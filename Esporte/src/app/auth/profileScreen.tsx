@@ -1,19 +1,66 @@
 // screens/profile/ProfileScreen.tsx
-import React, { useState } from "react";
-import { ScrollView, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import {
+  ScrollView,
+  View,
+  ActivityIndicator,
+  Text,
+  Alert,
+  TouchableOpacity,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuth, useUser } from "@clerk/clerk-expo";
+
 import { ProfileHeader } from "../../components/profile/ProfileHeader";
 import { ProfileInfo } from "../../components/profile/ProfileInfo";
 import { SportsSection } from "../../components/profile/SportsSection";
-import { ActivitiesSection } from "../../components/profile/ActivitiesSection"; // se quiser manter
 import BottomNavigation from "../../components/FutterBar";
 import { ActionTabs, ActionTabKey } from "../../components/profile/ActionTabs";
 import { RegisteredEvents } from "@/src/components/profile/RegisteredEvents";
-import { FriendCard } from "@/src/components/profile/FriendCard";
 import { Friends } from "@/src/components/profile/Friends";
+import { useProfile } from "@/hooks/useProfile";
+import { attachAuth } from "@/src/services/Api";
+import { Sport } from "@/src/services/UserService";
 
 export default function ProfileScreen() {
   const [tab, setTab] = useState<ActionTabKey>("participados");
+
+  const { getToken, isSignedIn } = useAuth();
+  const { user, isLoaded } = useUser();
+
+  const userId = user?.id as string | undefined;
+
+// screens/profile/ProfileScreen.tsx
+useEffect(() => {
+  attachAuth(() => getToken({ template: "backend", skipCache: true }));
+}, [getToken]);
+
+  const { data, loading, err, saveSports } = useProfile(userId);
+
+  const handleAddSport = async (sport: string) => {
+    const current = data?.sports ?? [];
+    const sportsAsStrings = current.map((s: Sport | string) =>
+      typeof s === "string" ? s : s.name
+    );
+    if (sportsAsStrings.includes(sport)) return;
+    try {
+      await saveSports([...sportsAsStrings, sport]);
+    } catch (e: any) {
+      Alert.alert("Erro", e?.message ?? "Não foi possível adicionar o esporte");
+    }
+  };
+
+  const handleRemoveSport = async (sport: string) => {
+    const current = data?.sports ?? [];
+    try {
+      const sportsAsStrings = current.map((s: Sport | string) =>
+        typeof s === "string" ? s : s.name
+      );
+      await saveSports(sportsAsStrings.filter((s: string) => s !== sport));
+    } catch (e: any) {
+      Alert.alert("Erro", e?.message ?? "Não foi possível remover o esporte");
+    }
+  };
 
   const renderTabContent = () => {
     switch (tab) {
@@ -44,7 +91,9 @@ export default function ProfileScreen() {
           />
         );
       case "participados":
-        return <ActivitiesSection />;
+        return (
+          <Text className="text-black px-2">Histórico de atividades aqui…</Text>
+        );
       case "amigos":
         return (
           <Friends
@@ -73,27 +122,94 @@ export default function ProfileScreen() {
     }
   };
 
+  // estados “não logado” ou “Clerk ainda carregando”
+  if (!isLoaded) {
+    return (
+      <SafeAreaView className="flex-1 bg-[#F7FFED] items-center justify-center">
+        <ActivityIndicator />
+      </SafeAreaView>
+    );
+  }
+
+  if (!isSignedIn || !userId) {
+    return (
+      <SafeAreaView className="flex-1 bg-[#F7FFED] items-center justify-center px-6">
+        <Text className="text-black text-center mb-3">
+          Você precisa estar logado para ver o seu perfil.
+        </Text>
+        <TouchableOpacity
+          onPress={() => {
+            /* router.push('/auth/login') */
+          }}
+          className="bg-[#10CF65] px-6 py-3 rounded-xl"
+        >
+          <Text className="text-white font-medium">Ir para Login</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-[#F7FFED]">
-      <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
-        <ProfileHeader />
-        <ProfileInfo />
-
-        <View className="mb-4">
-          <SportsSection />
+      {loading ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator />
         </View>
-
-        <ActionTabs value={tab} onChange={setTab} />
-
-        <View className="px-7 mt-4">{renderTabContent()}</View>
-
-        {/* Se quiser manter esta seção independente dos tabs */}
-        {/* <ActivitiesSection /> */}
-
-        <View className="mt-48">
-          <BottomNavigation />
+      ) : err ? (
+        <View className="flex-1 items-center justify-center px-6">
+          <Text className="text-red-600 text-center">{err}</Text>
         </View>
-      </ScrollView>
+      ) : (
+        <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+          <ProfileHeader
+            name={data?.name ?? user?.fullName ?? "—"}
+            photoUrl={data?.photo ?? user?.imageUrl ?? undefined}
+            stats={{ friends: 144, activities: 12, createdActivities: 2 }}
+            rating="4.80"
+          />
+
+          <ProfileInfo
+            ageText={
+              data?.birthday
+                ? calcAgeText(data.birthday)
+                : "Idade não informada"
+            }
+            cityText={data?.city ? `${data.city}` : "Cidade não informada"}
+            jobText={"Designer"} // troque quando vier do backend
+          />
+
+          <View className="mb-4">
+            <SportsSection
+              sports={
+                data?.sports
+                  ? data.sports.map((s: Sport | string) =>
+                      typeof s === "string" ? s : s.name
+                    )
+                  : []
+              }
+              onAddSport={handleAddSport}
+              onRemoveSport={handleRemoveSport}
+            />
+          </View>
+
+          <ActionTabs value={tab} onChange={setTab} />
+          <View className="px-7 mt-4">{renderTabContent()}</View>
+
+          <View className="mt-48">
+            <BottomNavigation />
+          </View>
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
+}
+
+// util local
+function calcAgeText(birthdayIso: string) {
+  const b = new Date(birthdayIso);
+  const now = new Date();
+  let age = now.getFullYear() - b.getFullYear();
+  const m = now.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < b.getDate())) age--;
+  return `${age} anos`;
 }
