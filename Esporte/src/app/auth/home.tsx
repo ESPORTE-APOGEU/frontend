@@ -229,6 +229,12 @@ export default function Home() {
     debouncedSearch(text);
   };
 
+  
+
+  const handleNotificationPress = () => {
+  router.push(('/auth/notificacoes') as Href);
+};
+
   // --- Helpers de UI ---
   const priceLabel = (p: string | number | null | undefined) => {
     if (p === null || p === undefined) return 'Grátis';
@@ -260,7 +266,7 @@ const handleEventPress = (eventId: number) => {
             />
           </View>
         </View>
-        <TouchableOpacity className="ml-2.5">
+        <TouchableOpacity className="ml-2.5" onPress={() => handleNotificationPress()} >
           <Ionicons name="notifications-outline" size={26} color="#007AFF" />
         </TouchableOpacity>
       </View>

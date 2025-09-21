@@ -1,37 +1,33 @@
-import axios from "axios";
-import * as SecureStore from "expo-secure-store";
+// src/services/NotificationService.ts
+import { api } from "@/src/services/Api";
 
-const API = process.env.EXPO_PUBLIC_API_BASE_URL || "http://192.168.100.10:8080";
+export type NotificationDTO = {
+  id: number;
+  type: string;
+  iconName?: "whatsapp" | "calendar" | "info" | string | null;
+  title: string;
+  description: string;
+  timestamp: string; // ISO_LOCAL_DATE_TIME vindo do backend
+  tagText?: string | null;
+  tagIcon?: "whatsapp" | "calendar" | "info" | string | null;
+  relatedEventId?: number | null;
+  entryId?: number | null;
 
-/**
- * Busca notificações para um usuário.
- * Backend esperado: GET /api/v1/users/{userId}/notifications
- */
-export async function getNotifications(userId: number) {
-  const token = await SecureStore.getItemAsync("token");
-  const resp = await axios.get(`${API}/api/v1/users/${userId}/notifications`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-  });
-  console.log('[NotificationService] GET notifications for userId=', userId, 'resp.data=', resp.data);
-  return resp.data;
+  actorId?: string | null;
+  actorName?: string | null;
+  actorPhoto?: string | null;
+};
+
+/** Lista minhas notificações (usa JWT do Clerk via interceptor). */
+export async function getMyNotifications(): Promise<NotificationDTO[]> {
+  const { data } = await api.get("/notifications");
+  return data;
 }
 
 export async function acceptEventEntry(entryId: number) {
-  const token = await SecureStore.getItemAsync("token");
-  const res = await axios.post(
-    `${API}/api/v1/event-entries/${entryId}/accept`,
-    {},
-    { headers: token ? { Authorization: `Bearer ${token}` } : undefined }
-  );
-  return res.data;
+  return api.post(`/event-entries/${entryId}/accept`, {});
 }
 
 export async function declineEventEntry(entryId: number) {
-  const token = await SecureStore.getItemAsync("token");
-  const res = await axios.post(
-    `${API}/api/v1/event-entries/${entryId}/decline`,
-    {},
-    { headers: token ? { Authorization: `Bearer ${token}` } : undefined }
-  );
-  return res.data;
+  return api.post(`/event-entries/${entryId}/decline`, {});
 }
