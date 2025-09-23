@@ -20,7 +20,7 @@ import { formatRelativeTime } from '../utils/date';
 
 export interface Notification {
   id: number;
-  type: 'info' | 'entry_request' | 'event_start_reminder' | 'event_location';
+  type: 'info' | 'entry_request' | 'event_start_reminder' | 'event_location' | 'entry_accepted' | 'entry_declined';
   iconName?: 'whatsapp' | 'calendar' | 'info';
   title?: string;
   description?: string;
@@ -28,7 +28,7 @@ export interface Notification {
   tag?: { text: string; icon: 'whatsapp' | 'calendar' | 'info' };
   user?: { id: number; name: string; profilePhoto?: string };
   relatedEventId?: number;
-  entryId?: number;      // ← campo agora obrigatório pra aceitar/rejeitar
+  entryId?: number;
 }
 
 export default function Notificacoes() {
@@ -36,13 +36,20 @@ export default function Notificacoes() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  const CURRENT_USER_ID = 4; // alinhar com quem realmente deve ver as entry_request
   const fetchNotifications = useCallback(async () => {
     setLoading(true);
-    const userId = 3;
-    const data = (await getNotifications(userId)) as Notification[];
-    setNotifications(data);
-    setLoading(false);
-    setRefreshing(false);
+    try {
+      const data = await getNotifications(CURRENT_USER_ID);
+      console.log('[Notificacoes] recebidas:', data); // DEBUG
+      setNotifications(data);
+    } catch (e) {
+      console.error('[Notificacoes] falha ao carregar', e);
+      setNotifications([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -74,7 +81,7 @@ export default function Notificacoes() {
     try {
       await declineEventEntry(entryId);
       console.log('[Notificacoes] Evento recusado no backend:', entryId);
-      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+      setNotifications(prev => prev.filter(n => n.id !== notificationId)); // ← corrigido
     } catch (err) {
       console.error('[Notificacoes] erro ao recusar:', err);
       Alert.alert('Erro', 'Não foi possível recusar a solicitação');
@@ -85,6 +92,35 @@ export default function Notificacoes() {
     setRefreshing(true);
     fetchNotifications();
   };
+
+  // Fallback para mensagens fixas caso backend não envie (segurança)
+  function resolveFixed(notification: Notification) {
+    if (notification.type === 'event_start_reminder' && (!notification.title || !notification.description)) {
+      return {
+        title: 'O evento já vai começar!',
+        description: `${notification.title ? '' : ''}${notification.description || 'Em 2 horas! Você está pronto?!'}`
+      };
+    }
+    if (notification.type === 'event_location' && (!notification.title || !notification.description)) {
+      return {
+        title: 'Local do evento',
+        description: notification.description || 'Confira o local do evento.'
+      };
+    }
+    if (notification.type === 'entry_accepted' && (!notification.title || !notification.description)) {
+      return {
+        title: 'Entrada aceita!',
+        description: notification.description || 'Você foi aceito no evento!'
+      };
+    }
+    if (notification.type === 'entry_declined' && (!notification.title || !notification.description)) {
+      return {
+        title: 'Pedido recusado',
+        description: notification.description || 'Seu pedido foi recusado.'
+      };
+    }
+    return { title: notification.title || '', description: notification.description || '' };
+  }
 
   if (loading) {
     return (
@@ -110,15 +146,27 @@ export default function Notificacoes() {
           if (item.type === 'entry_request') {
             return (
               <ParticipationRequest
-                userImage={require('../assets/images/participante.png')}
-                userName={item.user?.name ?? 'Usuário'}
+                userImage={item.user?.profilePhoto }
+                userName={item.user?.name || ''}
                 timestamp={item.timestamp}
-                onAccept={() => item.entryId && handleAccept(item.entryId, item.id)}
-                onDecline={() => item.entryId && handleDecline(item.entryId, item.id)}
+                onAccept={() => handleAccept(item.entryId!, item.id)}
+                onDecline={() => handleDecline(item.entryId!, item.id)}
               />
             );
           }
-          return <NotificationItem notification={item} />;
+
+          // para demais tipos (accepted/declined/reminder/location):
+          const fixed = resolveFixed(item);
+          const defaultIcon = item.type === 'event_start_reminder' ? 'calendar' : 'info';
+          return (
+            <NotificationItem
+              notification={item}
+              iconName={item.iconName ?? defaultIcon}
+              title={fixed.title}
+              description={fixed.description}
+              timestamp={item.timestamp}
+            />
+          );
         }}
         contentContainerStyle={{ paddingBottom: 120 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}

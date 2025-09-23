@@ -11,8 +11,9 @@ interface Participant {
 }
 
 const API = process.env.EXPO_PUBLIC_API_BASE_URL || "http://192.168.100.10:8080";
-const eventId = 37; // use o MESMO ID do POST
-const userId = 35;  // id real do participante
+// Defina aqui os IDs para teste
+const eventId = 2; // ← testando com eventID = 2
+const userId = 4;  // ← testando com userID = 4
 
 export default function ConfirmarSenha() {
   const router = useRouter();
@@ -32,7 +33,7 @@ export default function ConfirmarSenha() {
 
   useEffect(() => {
     const fetchEvent = async () => {
-      const { data } = await axios.get(`${API}/api/v1/events/${eventId}`);
+      const { data } = await axios.get(`${API}/api/v1/events/2`);
       console.log("Dados do evento:", data);
       setEventName(data.name);
       setEventDescription(data.description);
@@ -87,7 +88,7 @@ export default function ConfirmarSenha() {
         </TouchableOpacity>
 
         {/* Exibição do nome do evento (não editável) */}
-        <Text className="ml-2 text-[27px] top-[10px] mt-[50px] mb-4 left-[115px] font-bold">
+        <Text className="ml-2 text-[27px] top-[10px] mt-[50px] mb-4 left-[100px] font-bold">
           {eventName}
         </Text>
 
@@ -157,7 +158,7 @@ export default function ConfirmarSenha() {
 
           {/* Conexão */}
           <View className="flex-row items-center ml-[30px]">
-            <View className="relative w-[40px] h-[38px] mr-4">
+            <View className="relative w-[40px] h-[38px] mr-1">
               <Image
                 source={require("../assets/images/CIRCULO.png")}
                 className="w-[40px] h-[38px]"
@@ -180,8 +181,8 @@ export default function ConfirmarSenha() {
           </View>
 
           {/* Gênero */}
-          <View className="flex-row items-center ml-[170px] top-[-55px]">
-            <View className="relative w-[40px] h-[38px] mr-4">
+          <View className="flex-row items-center ml-[190px] top-[-55px]">
+            <View className="relative w-[40px] h-[38px] mr-1">
               <Image
                 source={require("../assets/images/CIRCULO.png")}
                 className="w-[40px] h-[38px]"

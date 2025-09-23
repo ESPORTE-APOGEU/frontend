@@ -1,13 +1,13 @@
 // Em: components/NotificationItem.js
 
 import React from 'react';
-import { View, Text, Image } from 'react-native';
+import { View, Text, Image, StyleSheet } from 'react-native';
 import { formatRelativeTime } from '../utils/date';
 import { Notification } from '../app/notificacoes';
 
 const iconMap = {
   whatsapp: require('../assets/images/whatsapp_icon.png'),
-  calendar: require('../assets/images/calendario.png'),
+  calendar: require('../assets/images/Calendar.png'), // ← usar exatamente o nome certo (case sensitive em build)
   info: require('../assets/images/info_icon.png'),
 };
 
@@ -26,28 +26,69 @@ export default function NotificationItem({
   title,
   description,
   timestamp,
-  tag,
   notification,
 }: NotificationItemProps & Props) {
   return (
-    <View className="flex-row items-start mb-6 p-4 border-b">
-      {/* Ícone */}
-      <View className="w-10 h-10 bg-[#25D366] rounded-full items-center justify-center mr-4">
-        <Image source={iconMap[iconName]} className="w-6 h-6" resizeMode="contain" />
+    <View style={styles.container}>
+      <View style={styles.iconContainer}>
+        <Image source={iconMap[iconName]} style={styles.icon} resizeMode="contain" />
       </View>
-      
-      {/* Conteúdo */}
-      <View className="flex-1">
-        <Text className="text-base font-bold text-black mb-1">{title}</Text>
-        <Text className="text-base text-gray-700">{description}</Text>
-        
-        {/* Rodapé da Notificação */}
-        <View className="flex-row justify-between items-center mt-2">
-            <Text className="text-sm italic text-blue-500">
-              {formatRelativeTime(notification.timestamp)}
-            </Text>
+      <View style={styles.content}>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.message}>{description}</Text>
+        <View style={styles.footer}>
+          <Text style={styles.timestamp}>{formatRelativeTime(notification.timestamp)}</Text>
         </View>
       </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    marginBottom: 24,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderColor: '#ccc',
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    backgroundColor: '#25D366',
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  icon: {
+    width: 24,
+    height: 24,
+  },
+  content: {
+    flex: 1,
+  },
+  title: {
+    fontFamily: 'Poppins',
+    fontWeight: '500',
+    fontSize: 20,
+    lineHeight: 20,
+    color: '#000000',
+    backgroundColor: '#00000000', // transparente
+  },
+  message: {
+    fontFamily: 'SF Pro',
+    fontWeight: '300',
+    fontSize: 16,
+    lineHeight: 16,
+    color: '#000000',
+    backgroundColor: '#00000000',
+  },
+  footer: {
+    marginTop: 8,
+  },
+  timestamp: {
+    fontSize: 12,
+    color: '#555',
+  },
+});
