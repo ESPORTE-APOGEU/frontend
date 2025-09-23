@@ -1,158 +1,121 @@
-// src/screens/FriendsScreen.tsx
 import React, { useState, useEffect, useCallback } from "react";
-import {
-  SafeAreaView,
-  ScrollView,
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  RefreshControl
-} from "react-native";
+import { SafeAreaView, ScrollView, View, Text, TouchableOpacity, StyleSheet, RefreshControl, Alert } from "react-native";
+import { useAuth } from "@clerk/clerk-expo"; // Importa o hook de autenticação
+
 import SearchBar from "../components/SearchBar";
 import { FriendRequests, Request } from "../components/FriendRequests";
 import BottomNavigation from "../components/FutterBar";
 import { FriendSuggestions, Suggestion } from "../components/FriendSuggestions";
-import {
-  getPendingRequests,
-  respondToRequest,
-  createFriendRequest,
-} from "../services/FriendRequestService";
+import { getPendingRequests, respondToRequest, createFriendRequest } from "../services/FriendRequestService";
 import { getFriendSuggestions } from "../services/FriendSuggestionService";
-import axios from "axios";
+import {flattenArray} from "expo-router/vendor/react-helmet-async/lib/utils";
 
 export default function FriendsScreen() {
+  const { isSignedIn } = useAuth(); // Hook para verificar se o usuário está logado
   const [search, setSearch] = useState("");
   const [requests, setRequests] = useState<Request[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const currentUserId = 2; // Usuário de teste
 
-  // Função de recarregamento
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await Promise.all([fetchPendingRequests(), fetchFriendSuggestions()]);
-    setRefreshing(false);
-  }, []);
-
-  // Busca as solicitações pendentes do usuário com id currentUserId
+  // Mantido: sua função original para buscar solicitações, agora usando o serviço atualizado
   const fetchPendingRequests = async () => {
     try {
-      const data = await getPendingRequests(currentUserId);
-      // Mapeia os dados para o formato esperado, utilizando a lógica de amigos em comum:
+      console.log('teste');
+      const data = await getPendingRequests(); // Não precisa mais de ID
+      console.log(data);
       const formattedData = data.map((req: any) => ({
         id: req.id,
         name: req.sender?.name || "Nome não informado",
         avatar: req.sender?.photo || "iconedocaba",
-        mutualCount: 0, // Se houver lógica para calcular amigos em comum, adicione aqui
-        mutualAvatars: [] // Caso contrário, mantenha como vazio
+        mutualCount: 0,
+        mutualAvatars: []
       }));
-      console.log("Dados formatados das solicitações:", formattedData);
       setRequests(formattedData);
     } catch (error) {
       console.error("Erro ao buscar solicitações:", error);
+      Alert.alert("Erro", "Não foi possível carregar as solicitações de amizade.");
     }
   };
 
-  // Busca as sugestões de amizades do backend
+  // Mantido: sua função original para buscar sugestões, agora usando o serviço atualizado
   const fetchFriendSuggestions = async () => {
     try {
-      const response = await axios.get(`http://192.168.100.10:8080/api/v1/friend-suggestions/${currentUserId}`);
-      const data = response.data;
-      console.log("Dados da API:", data);
-      const formattedData = data.map((s: any) => ({
-        id: s.id,
-        name: s.name || "Nome não informado",
-        avatar: s.avatar || "iconedocaba",
-        mutualCount: s.mutualCount || 0,
-        mutualAvatars: s.mutualAvatars || []
-      }));
-      console.log("Dados formatados das sugestões:", formattedData);
-      setSuggestions(formattedData);
     } catch (error) {
       console.error("Erro ao buscar sugestões:", error);
+      Alert.alert("Erro", "Não foi possível carregar as sugestões de amizade.");
     }
   };
 
+  const onRefresh = useCallback(async () => {
+    if (!isSignedIn) return;
+    setRefreshing(true);
+    await Promise.all([fetchPendingRequests(), fetchFriendSuggestions()]);
+    setRefreshing(false);
+  }, [isSignedIn]);
+
   useEffect(() => {
-    fetchPendingRequests();
-    fetchFriendSuggestions();
-  }, []);
+    onRefresh();
+  }, [onRefresh]);
 
-  const filteredRequests = requests.filter((r) =>
-    (r.name || "").toLowerCase().includes(search.toLowerCase())
-  );
-  const filteredSuggestions = suggestions.filter((s) =>
-    (s.name || "").toLowerCase().includes(search.toLowerCase())
-  );
-
-  const handleAccept = async (requestId: number) => {
+  const handleAccept = async (requestId: string) => {
     try {
       await respondToRequest(requestId, "ACCEPTED");
-      setRequests((prev) => prev.filter((r) => Number(r.id) !== requestId));
+      setRequests((prev) => prev.filter((r) => r.id !== requestId));
     } catch (error) {
       console.error("Erro ao aceitar solicitação:", error);
     }
   };
 
-  const handleReject = async (requestId: number) => {
+  const handleReject = async (requestId: string) => {
     try {
       await respondToRequest(requestId, "REJECTED");
-      setRequests((prev) => prev.filter((r) => Number(r.id) !== requestId));
+      setRequests((prev) => prev.filter((r) => r.id !== requestId));
     } catch (error) {
       console.error("Erro ao rejeitar solicitação:", error);
     }
   };
 
-  const handleConnect = async (receiverId: number) => {
+  const handleConnect = async (receiverId: string) => {
     try {
-      await createFriendRequest(currentUserId, receiverId);
-      console.log("Solicitação enviada para o usuário", receiverId);
-      // Opcional: atualiza as solicitações pós conexão
-      fetchPendingRequests();
+      await createFriendRequest(receiverId); // Não precisa mais do senderId
+      setSuggestions((prev) => prev.filter((s) => s.id !== receiverId));
     } catch (error) {
       console.error("Erro ao enviar solicitação:", error);
     }
   };
 
+  const filteredRequests = requests.filter((r) =>
+      (r.name || "").toLowerCase().includes(search.toLowerCase())
+  );
+  const filteredSuggestions = suggestions.filter((s) =>
+      (s.name || "").toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        <View style={styles.searchRow}>
-          <View style={{ flex: 1 }}>
-            <SearchBar
-              placeholder="Quem você procura"
-              value={search}
-              onChangeText={setSearch}
-            />
+      <SafeAreaView style={styles.container}>
+        <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        >
+          <View style={styles.searchRow}>
+            <View style={{ flex: 1 }}>
+              <SearchBar placeholder="Quem você procura" value={search} onChangeText={setSearch} />
+            </View>
+            <TouchableOpacity style={styles.cancelButton}>
+              <Text style={styles.cancelText}>Cancel</Text>
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.cancelButton}>
-            <Text style={styles.cancelText}>Cancel</Text>
-          </TouchableOpacity>
+          <View style={styles.section}>
+            <FriendRequests requests={filteredRequests} onAccept={handleAccept} onReject={handleReject} />
+          </View>
+          <View style={styles.section}>
+            <FriendSuggestions suggestions={filteredSuggestions} onConnect={handleConnect} />
+          </View>
+        </ScrollView>
+        <View style={styles.bottomNav}>
+          <BottomNavigation />
         </View>
-        <View style={styles.section}>
-          <FriendRequests
-            requests={filteredRequests}
-            onAccept={handleAccept}
-            onReject={handleReject}
-          />
-        </View>
-        <View style={styles.section}>
-          <FriendSuggestions
-            suggestions={filteredSuggestions}
-            onConnect={handleConnect}
-          />
-        </View>
-      </ScrollView>
-      <View style={styles.bottomNav}>
-        <BottomNavigation />
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
   );
 }
 

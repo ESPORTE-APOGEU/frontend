@@ -1,8 +1,11 @@
 import axios from "axios";
+import {api} from "@/src/services/Api";
 
-const API_URL = "http://192.168.100.10:8080/api/v1/friend-suggestions";
 
-export const getFriendSuggestions = async (userId: number) => {
-  const response = await axios.get(`${API_URL}/${userId}`);
+const API_URL = "/friend-suggestions";
+
+
+export const getFriendSuggestions = async () => {
+  const response = await api.get(API_URL);
   return response.data;
 };

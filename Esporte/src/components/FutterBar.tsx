@@ -48,7 +48,7 @@ export default function BottomNavigation() {
   };
 
   const handleChatbotPress = () => {
-      router.push("/auth/settings");
+      router.push("/FriendsScreen");
   };
 
   return (
