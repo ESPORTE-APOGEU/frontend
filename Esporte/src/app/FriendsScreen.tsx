@@ -9,14 +9,21 @@ import { FriendSuggestions, Suggestion } from "../components/FriendSuggestions";
 import { getPendingRequests, respondToRequest, createFriendRequest } from "../services/FriendRequestService";
 import { getFriendSuggestions } from "../services/FriendSuggestionService";
 import {flattenArray} from "expo-router/vendor/react-helmet-async/lib/utils";
+import { attachAuth } from "@/src/services/Api"; // <-- traga isto também
+
 
 export default function FriendsScreen() {
-  const { isSignedIn } = useAuth(); // Hook para verificar se o usuário está logado
+  const { getToken, isLoaded, isSignedIn } = useAuth();
   const [search, setSearch] = useState("");
   const [requests, setRequests] = useState<Request[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-
+  
+  useEffect(() => {
+    // mesma ideia do Notificacoes
+    attachAuth(() => getToken({ template: "backend", skipCache: true }));
+  }, [getToken]);
+  
   // Mantido: sua função original para buscar solicitações, agora usando o serviço atualizado
   const fetchPendingRequests = async () => {
     try {
@@ -47,11 +54,11 @@ export default function FriendsScreen() {
   };
 
   const onRefresh = useCallback(async () => {
-    if (!isSignedIn) return;
+    if (!isLoaded || !isSignedIn) return;   // <-- inclui isLoaded
     setRefreshing(true);
     await Promise.all([fetchPendingRequests(), fetchFriendSuggestions()]);
     setRefreshing(false);
-  }, [isSignedIn]);
+  }, [isLoaded, isSignedIn]);
 
   useEffect(() => {
     onRefresh();
