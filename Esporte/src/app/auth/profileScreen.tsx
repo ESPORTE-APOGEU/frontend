@@ -22,6 +22,11 @@ import { useProfile } from "@/hooks/useProfile";
 import { attachAuth } from "@/src/services/Api";
 import { Sport } from "@/src/services/UserService";
 
+// ↓ Novos imports vindos da sua versão nova
+import { useMyEvents } from "@/hooks/useMyEvents"
+import { Activity } from "@/src/components/profile/ActivityItem";
+import { ActivitiesSection } from "@/src/components/profile/ActivitiesSection";
+
 export default function ProfileScreen() {
   const [tab, setTab] = useState<ActionTabKey>("participados");
 
@@ -30,12 +35,33 @@ export default function ProfileScreen() {
 
   const userId = user?.id as string | undefined;
 
-// screens/profile/ProfileScreen.tsx
-useEffect(() => {
-  attachAuth(() => getToken({ template: "backend", skipCache: true }));
-}, [getToken]);
+  // MANTIDO: injeta JWT do Clerk com template 'backend'
+  useEffect(() => {
+    attachAuth(() => getToken({ template: "backend", skipCache: true }));
+  }, [getToken]);
 
+  // Dados do perfil
   const { data, loading, err, saveSports } = useProfile(userId);
+
+  // NOVO: eventos do usuário (inscritos/participados)
+  const {
+    registered = [],
+    participated = [],
+    loading: loadingEvents,
+    err: errEvents,
+  } = useMyEvents();
+
+  // NOVO: util simples para "há X dias/semanas"
+  function toTimeAgo(isoDate: string) {
+    const d = new Date(isoDate);
+    const now = new Date();
+    const diffDays = Math.floor((+now - +d) / (1000 * 60 * 60 * 24));
+    if (diffDays <= 0) return "Hoje";
+    if (diffDays === 1) return "Há 1 dia";
+    if (diffDays < 7) return `Há ${diffDays} dias`;
+    const weeks = Math.floor(diffDays / 7);
+    return weeks === 1 ? "Há 1 semana" : `Há ${weeks} semanas`;
+  }
 
   const handleAddSport = async (sport: string) => {
     const current = data?.sports ?? [];
@@ -62,38 +88,53 @@ useEffect(() => {
     }
   };
 
+  // NOVO: mapeia “participated” para ActivitiesSection
+  const participatedActivities: Activity[] = (participated ?? []).map((ev) => ({
+    id: String(ev.id),
+    title: ev.name,
+    timeAgo: toTimeAgo(ev.date),
+    tag: ev.sport,
+    icon: ev.sport?.toLowerCase().includes("yoga") ? "yoga" : "soccer",
+  }));
+
   const renderTabContent = () => {
+    // estados da listagem de eventos
+    if (loadingEvents) {
+      return <Text className="text-black px-7">Carregando…</Text>;
+    }
+    if (errEvents) {
+      return <Text className="text-red-600 px-7">{errEvents}</Text>;
+    }
+
     switch (tab) {
       case "inscrito":
+        // NOVO: usa eventos reais vindos do hook
         return (
           <RegisteredEvents
-            events={[
-              {
-                id: 1,
-                eventName: "5x5 Soccer Night",
-                location: "Marquina Park - Vila Mariana",
-                date: "Monday, Feb 15, 2025",
-                participants: 8,
-                image: require("../../assets/images/tela.png"),
-                price: "Free",
-              },
-              {
-                id: 2,
-                eventName: "Morning Run",
-                location: "Lago das Rosas",
-                date: "Tuesday, Feb 18, 2025",
-                participants: 12,
-                image: require("../../assets/images/tela.png"),
-                price: "$5",
-              },
-            ]}
+            events={(registered ?? []).map((ev) => ({
+              id: ev.id,
+              eventName: ev.name,
+              location: ev.location,
+              date: new Date(ev.date).toDateString(),
+              participants: 0, // ajuste se tiver contagem no backend
+              image: require("../../assets/images/tela.png"),
+              price: ev.price ? String(ev.price) : "Free",
+            }))}
             onPressEvent={(ev) => console.log("Abrir detalhes:", ev.id)}
+            emptyText="Você ainda não se inscreveu em eventos"
+
           />
         );
+
       case "participados":
+        // NOVO: usa ActivitiesSection em vez do texto estático
         return (
-          <Text className="text-black px-2">Histórico de atividades aqui…</Text>
+          <ActivitiesSection
+            activities={participatedActivities}
+            emptyText="Você ainda não participou de atividades"
+          />
         );
+
       case "amigos":
         return (
           <Friends
@@ -115,8 +156,11 @@ useEffect(() => {
                 mutualCount: 3,
               },
             ]}
+             emptyText="Você ainda não adicionou amigos"
+
           />
         );
+
       default:
         return null;
     }
@@ -170,9 +214,7 @@ useEffect(() => {
 
           <ProfileInfo
             ageText={
-              data?.birthday
-                ? calcAgeText(data.birthday)
-                : "Idade não informada"
+              data?.birthday ? calcAgeText(data.birthday) : "Idade não informada"
             }
             cityText={data?.city ? `${data.city}` : "Cidade não informada"}
             jobText={"Designer"} // troque quando vier do backend

@@ -1,5 +1,5 @@
 import React from "react";
-import { View, ImageSourcePropType } from "react-native";
+import { View, Text, ImageSourcePropType } from "react-native";
 import EventCard from "../EventCard";
 
 type RegisteredEvent = {
@@ -15,10 +15,16 @@ type RegisteredEvent = {
 export function RegisteredEvents({
   events,
   onPressEvent,
+  emptyText = "Você ainda não se inscreveu em eventos",
 }: {
   events: RegisteredEvent[];
   onPressEvent?: (ev: RegisteredEvent) => void;
+  emptyText?: string;
 }) {
+  if (!events || events.length === 0) {
+    return <Text className="px-7 text-[#969696] mt-4">{emptyText}</Text>;
+  }
+
   return (
     <View>
       {events.map((ev) => (
