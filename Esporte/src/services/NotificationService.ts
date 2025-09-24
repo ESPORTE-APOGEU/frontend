@@ -11,7 +11,7 @@ export async function getNotifications(userId: number) {
     const token = await SecureStore.getItemAsync("token");
     const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
     // 1) agora usa userId dinâmico
-    const resp = await axios.get(`${API}/api/v1/users/${userId}/notifications`, { headers });
+    const resp = await axios.get(`${API}/api/v1/users/4/notifications`, { headers });
     return resp.data;
 }
 

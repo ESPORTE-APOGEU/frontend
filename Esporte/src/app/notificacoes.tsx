@@ -146,7 +146,7 @@ export default function Notificacoes() {
           if (item.type === 'entry_request') {
             return (
               <ParticipationRequest
-                userImage={item.user?.profilePhoto }
+                userImage={item.user?.profilePhoto ? { uri: item.user.profilePhoto } : require('../assets/images/participante.png')}
                 userName={item.user?.name || ''}
                 timestamp={item.timestamp}
                 onAccept={() => handleAccept(item.entryId!, item.id)}

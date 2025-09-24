@@ -26,7 +26,7 @@ export default function FriendsScreen() {
   const [requests, setRequests] = useState<Request[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const currentUserId = 2; // Usuário de teste
+  const currentUserId = 7; // <-- fixado em 5
 
   // Função de recarregamento
   const onRefresh = useCallback(async () => {
@@ -57,8 +57,7 @@ export default function FriendsScreen() {
   // Busca as sugestões de amizades do backend
   const fetchFriendSuggestions = async () => {
     try {
-      const response = await axios.get(`http://192.168.100.10:8080/api/v1/friend-suggestions/${currentUserId}`);
-      const data = response.data;
+      const data = await getFriendSuggestions(currentUserId); // embora o service ignore, mantemos a chamada
       console.log("Dados da API:", data);
       const formattedData = data.map((s: any) => ({
         id: s.id,

@@ -1,19 +1,25 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, Image, ScrollView, Alert } from "react-native";
+import React, { useState, useEffect, useCallback } from "react";
+import { View, Text, TouchableOpacity, Image, ScrollView, Alert, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import { requestEventEntry } from "../services/EventEntryService";
 import axios from "axios";
+import { useFocusEffect } from "@react-navigation/native";
 
 // Definição da interface para os participantes
 interface Participant {
     name: string;
-    photo: string;
+    photo?: string;
 }
 
 const API = process.env.EXPO_PUBLIC_API_BASE_URL || "http://192.168.100.10:8080";
 // Defina aqui os IDs para teste
-const eventId = 2; // ← testando com eventID = 2
-const userId = 4;  // ← testando com userID = 4
+const eventId = 11; // coloque aqui o ID do evento em que você aceitou
+const userId = 5;  // usuário logado
+
+// helper p/ evitar uri vazia
+const safeImage = (uri?: string) =>
+  uri && uri.trim().length > 0 ? { uri } : require("../assets/images/participante.png");
+
 
 export default function ConfirmarSenha() {
   const router = useRouter();
@@ -30,44 +36,68 @@ export default function ConfirmarSenha() {
   const [price, setPrice] = useState("");
   // Altere aqui para um array vazio tipado
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [capacity, setCapacity] = useState<number>(0); // <-- total de vagas
+  const [refreshing, setRefreshing] = useState(false); // <-- estado do refresh
 
+  const fetchEvent = async () => {
+    const { data } = await axios.get(`${API}/api/v1/events/${eventId}`);
+    setEventName(data.name);
+    setEventDescription(data.description);
+    setOrganizer(data.organizerPhoto);
+    setOrganizerName(data.organizerName);
+    setEventLocation(data.location);
+    setEventDate(data.date);
+    setEventStartTime(data.startTime);
+    setEventEndTime(data.endTime);
+    setEventLevel(data.level);
+    setEventGender(data.gender);
+    setPrice(data.price);
+  };
+
+  const fetchParticipants = async () => {
+    const { data } = await axios.get(`${API}/api/v1/events/${eventId}/participants`);
+    setParticipants(data);
+  };
+
+  const fetchRemainingSlots = async () => {
+    try {
+      const { data } = await axios.get(`${API}/api/v1/events/${eventId}/remaining-slots`);
+      setCapacity(data?.capacity ?? 0);
+    } catch {
+      setCapacity(0);
+    }
+  };
+
+  // Pull-to-refresh
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([fetchEvent(), fetchParticipants(), fetchRemainingSlots()]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
+  
   useEffect(() => {
-    const fetchEvent = async () => {
-      const { data } = await axios.get(`${API}/api/v1/events/2`);
-      console.log("Dados do evento:", data);
-      setEventName(data.name);
-      setEventDescription(data.description);
-      setOrganizer(data.organizerPhoto);
-      setOrganizerName(data.organizerName);
-      setEventLocation(data.location);
-      setEventDate(data.date);
-      setEventStartTime(data.startTime);
-      setEventEndTime(data.endTime);
-      setEventLevel(data.level);
-      setEventGender(data.gender);
-      setPrice(data.price);
-      console.log(data);
-    };
     fetchEvent();
+    fetchParticipants();
+    fetchRemainingSlots();
   }, []);
 
-  useEffect(() => {
-    const fetchParticipants = async () => {
-      const { data } = await axios.get(`${API}/api/v1/events/${eventId}/participants`);
-      setParticipants(data);
-    };
-    fetchParticipants();
-  }, []);
+  // Recarrega ao voltar para a tela
+  useFocusEffect(
+    useCallback(() => {
+      fetchParticipants();
+      fetchRemainingSlots();
+    }, [])
+  );
 
   const handleSolicitarEntrada = async () => {
     try {
       const data = await requestEventEntry(eventId, userId);
       Alert.alert("Sucesso", data.message);
-      // re­carrega participantes
-      const { data: parts } = await axios.get(`${API}/api/v1/events/${eventId}/participants`);
-      setParticipants(parts);
-        // redireciona para notificações
-        router.push("/notificacoes");
+      await fetchParticipants(); // recarrega após solicitar
+      router.push("/notificacoes");
     } catch (error: any) {
       Alert.alert("Erro", error.message);
     }
@@ -75,7 +105,18 @@ export default function ConfirmarSenha() {
 
   return (
     <View className="flex-1 bg-[#FFFFFF]">
-      <ScrollView contentContainerStyle={{ paddingBottom: 180 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 180 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#40B843"       // iOS
+            colors={["#40B843"]}      // Android
+          />
+        }
+      >
         <TouchableOpacity
           className="absolute top-[56px] left-[30px] z-50"
           onPress={() => { router.push("/auth"); }}
@@ -124,7 +165,7 @@ export default function ConfirmarSenha() {
             </View>
             <View className="flex-col">
               <Text className="text-[16px] font-bold text-black">
-                {eventDate }
+                {eventDate}
               </Text>
               <Text className="text-[14px] text-black">
                 {eventStartTime && eventEndTime ? `${eventStartTime} - ${eventEndTime}` : ""}
@@ -155,6 +196,26 @@ export default function ConfirmarSenha() {
               </Text>
             </View>
           </View>
+          {/* quantidade de pessoas */}
+          <View className="flex-row items-center ml-[30px]">
+            <View className="relative w-[40px] h-[38px] mr-4">
+              <Image
+                source={require("../assets/images/RETANGULO.png")}
+                className="w-[40px] h-[38px]"
+                resizeMode="cover"
+              />
+              <Image
+                source={require("../assets/images/pessoa.png")}
+                className="absolute w-[22px] h-[22px] left-[9px] top-[8px]"
+                resizeMode="contain"
+              />
+            </View>
+            <View className="flex-col">
+              <Text className="text-[16px] font-bold text-black">
+                Vagas restantes: {participants.length}/{capacity}
+              </Text>
+            </View>
+          </View>
 
           {/* Conexão */}
           <View className="flex-row items-center ml-[30px]">
@@ -175,7 +236,7 @@ export default function ConfirmarSenha() {
                 {eventLevel}
               </Text>
               <Text className="text-[14px] text-black">
-                {/* Adicione informação extra se necessário */}
+                {/* espaço para info extra */}
               </Text>
             </View>
           </View>
@@ -209,7 +270,7 @@ export default function ConfirmarSenha() {
         <View className="flex-row items-center ml-[30px]">
           <View className="relative w-[40px] h-[38px] mr-4">
             <Image
-              source={{ uri: organizer }}
+              source={safeImage(organizer)}
               className="w-[40px] h-[38px]"
               resizeMode="cover"
             />
@@ -226,16 +287,16 @@ export default function ConfirmarSenha() {
           Participantes
         </Text>
         {participants.map((participant, index) => (
-          <View className="flex-row items-center ml-[30px] top-[50px]" key={index}>
-            <View className="relative w-[40px] h-[38px] mr-4">
+          <View className="flex-row items-center ml-[25px] top-[50px]" key={index}>
+            <View className="relative w-[35px] h-[45px] mr-4">
               <Image
-                source={participant.photo ? { uri: participant.photo } : require("../assets/images/participante.png")}
+                source={safeImage(participant.photo)}
                 className="w-[40px] h-[38px]"
                 resizeMode="cover"
               />
             </View>
             <View className="flex-col">
-              <Text className="text-[16px] font-bold top-[8px] text-black">
+              <Text className="text-[16px] font-bold top-[-5px] text-black">
                 {participant.name}
               </Text>
             </View>
