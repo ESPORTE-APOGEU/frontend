@@ -1,9 +1,9 @@
 import React from "react";
-import { View, Text, ImageSourcePropType } from "react-native";
+import { View, Text, ImageSourcePropType, TouchableOpacity } from "react-native";
 import EventCard from "../EventCard";
 
 type RegisteredEvent = {
-  id: string | number;
+  id: number;
   eventName: string;
   location: string;
   date: string;
@@ -15,7 +15,7 @@ type RegisteredEvent = {
 export function RegisteredEvents({
   events,
   onPressEvent,
-  emptyText = "Você ainda não se inscreveu em eventos",
+  emptyText = "Você não está inscrito em nenhum evento atualmente",
 }: {
   events: RegisteredEvent[];
   onPressEvent?: (ev: RegisteredEvent) => void;
@@ -36,7 +36,7 @@ export function RegisteredEvents({
           participants={ev.participants}
           image={ev.image}
           price={ev.price}
-          onPress={onPressEvent ? () => onPressEvent(ev) : undefined}
+          onPress={() => onPressEvent?.(ev)}   // ← aqui
         />
       ))}
     </View>

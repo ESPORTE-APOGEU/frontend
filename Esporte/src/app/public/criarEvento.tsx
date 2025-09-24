@@ -51,6 +51,45 @@ export default function CreateEventScreen() {
   const [isPrivate, setIsPrivate] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  const [localImageUri, setLocalImageUri] = useState<string | null>(null);
+
+  async function uploadToCloudinary(jwt: string): Promise<string | null> {
+    if (!localImageUri) return null;
+
+    // 1) pede assinatura para o backend
+    const signRes = await fetch(`${BACKEND_URL}/api/v1/uploads/cloudinary/sign`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${jwt}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        folder: "events",               // opcional: pasta no Cloudinary
+        // publicId: "event-123",       // opcional: se quiser controlar o nome
+      }),
+    });
+    if (!signRes.ok) throw new Error("Falha ao obter assinatura de upload.");
+    const { cloudName, apiKey, timestamp, signature, folder, publicId } = await signRes.json();
+
+    // 2) envia o arquivo direto para o Cloudinary
+    const filename = localImageUri.split("/").pop() || "event.jpg";
+    const ext = filename.split(".").pop()?.toLowerCase();
+    const mime = ext === "png" ? "image/png" : "image/jpeg";
+
+    const form = new FormData();
+    // @ts-ignore RN FormData file
+    form.append("file", { uri: localImageUri, name: filename, type: mime });
+    form.append("api_key", apiKey);
+    form.append("timestamp", String(timestamp));
+    form.append("signature", signature);
+    if (folder) form.append("folder", folder);
+    if (publicId) form.append("public_id", publicId);
+
+    const cloudUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+    const upRes = await fetch(cloudUrl, { method: "POST", body: form });
+    const upJson = await upRes.json();
+    if (!upRes.ok) throw new Error(upJson?.error?.message || "Upload no Cloudinary falhou.");
+
+    return upJson.secure_url as string;
+  }
+
   const handleCreateEvent = async () => {
     try {
       if (!isLoaded || !isSignedIn) {
@@ -72,31 +111,38 @@ export default function CreateEventScreen() {
         (await getToken({ template: "backend", skipCache: true })) ||
         (await getToken({ template: "backend" }));
       if (!jwt) throw new Error("Não foi possível obter o token do Clerk.");
+     let coverImageUrl: string | null = null;
+      if (localImageUri) {
+        coverImageUrl = await uploadToCloudinary(jwt);
+      }
 
-const payload = {
-        name: name.trim(),
-        location: place.trim(),
-        sport,
-        level,
-        gender,
-        date: toDate(date),
-        startTime: toTime(startTime),
-        endTime: toTime(endTime),
-        price: Number(price || 0),
-        
-        // Dados estruturados (melhor prática)
-        description: description.trim(),
-        whatsappLink: whats.trim(),
-        isPrivate: isPrivate,
-        
-        // Campos que estavam faltando
-        minParticipants: minPart,
-        maxParticipants: maxPart,
+      const payload = {
+              name: name.trim(),
+              location: place.trim(),
+              sport,
+              level,
+              gender,
+              date: toDate(date),
+              startTime: toTime(startTime),
+              endTime: toTime(endTime),
+              price: Number(price || 0),
+              
+              // Dados estruturados (melhor prática)
+              description: description.trim(),
+              whatsappLink: whats.trim(),
+              isPrivate: isPrivate,
+              
+              // Campos que estavam faltando
+              minParticipants: minPart,
+              maxParticipants: maxPart,
 
-        // Coordenadas (ainda como TODO)
-        latitude: null,
-        longitude: null,
-      };
+              // Coordenadas (ainda como TODO)
+              latitude: null,
+              longitude: null,
+
+              coverImageUrl,
+
+            };
 
       const res = await fetch(`${BACKEND_URL}/api/v1/events`, {
         method: "POST",
@@ -132,7 +178,8 @@ const payload = {
     >
       <View className="px-7 pt-14">
         <ScreenHeader title="Criar evento" />
-        <ImageUploader />
+        <ImageUploader value={null} onChange={setLocalImageUri} />
+
 
         <FormInput value={name} onChangeText={setName} placeholder="Nome do evento" />
         <FormInput value={place} onChangeText={setPlace} placeholder="Localização" />

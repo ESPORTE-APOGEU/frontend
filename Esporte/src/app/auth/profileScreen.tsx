@@ -26,8 +26,11 @@ import { Sport } from "@/src/services/UserService";
 import { useMyEvents } from "@/hooks/useMyEvents"
 import { Activity } from "@/src/components/profile/ActivityItem";
 import { ActivitiesSection } from "@/src/components/profile/ActivitiesSection";
+import { useRouter, Href } from "expo-router";
 
 export default function ProfileScreen() {
+  const router = useRouter(); // 👈 aqui
+
   const [tab, setTab] = useState<ActionTabKey>("participados");
 
   const { getToken, isSignedIn } = useAuth();
@@ -87,6 +90,13 @@ export default function ProfileScreen() {
       Alert.alert("Erro", e?.message ?? "Não foi possível remover o esporte");
     }
   };
+const openEvent = (eventId: number) => {
+  router.push({
+    pathname: "/auth/event/[id]",
+    params: { id: String(eventId) },
+  });
+};
+
 
   // NOVO: mapeia “participated” para ActivitiesSection
   const participatedActivities: Activity[] = (participated ?? []).map((ev) => ({
@@ -108,7 +118,6 @@ export default function ProfileScreen() {
 
     switch (tab) {
       case "inscrito":
-        // NOVO: usa eventos reais vindos do hook
         return (
           <RegisteredEvents
             events={(registered ?? []).map((ev) => ({
@@ -116,13 +125,15 @@ export default function ProfileScreen() {
               eventName: ev.name,
               location: ev.location,
               date: new Date(ev.date).toDateString(),
-              participants: 0, // ajuste se tiver contagem no backend
-              image: require("../../assets/images/tela.png"),
+              participants: 0,
+              image: ev.coverImageUrl && ev.coverImageUrl.trim().length > 0
+                ? { uri: ev.coverImageUrl }
+                : require("../../assets/images/default_card.png"),
               price: ev.price ? String(ev.price) : "Free",
             }))}
-            onPressEvent={(ev) => console.log("Abrir detalhes:", ev.id)}
-            emptyText="Você ainda não se inscreveu em eventos"
 
+            onPressEvent={(ev) => openEvent(ev.id)}   // ← navega
+            emptyText="Você ainda não se inscreveu em eventos"
           />
         );
 

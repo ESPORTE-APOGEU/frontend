@@ -13,6 +13,7 @@ export type EventItem = {
   endTime: string;
   price?: number | string | null;
   description?: string | null;
+  coverImageUrl?: string | null;
 };
 
 export async function getMyRegisteredEvents(): Promise<EventItem[]> {

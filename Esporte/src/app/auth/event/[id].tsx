@@ -6,6 +6,8 @@ import { useAuth } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '@/src/services/Api';
 import { attachAuth } from '@/src/services/Api';
+import { Image as ExpoImage } from 'expo-image';
+
 
 type ApiEvent = {
   id: number;
@@ -22,6 +24,7 @@ type ApiEvent = {
   organizerId?: string | null;
   organizerName?: string | null;
   organizerPhoto?: string | null;
+  coverImageUrl?: string | null;
 };
 
 type MyEntry = {
@@ -194,11 +197,16 @@ const handleSolicitarEntrada = async () => {
         </View>
 
         <Image
-          source={require('../../../assets/images/default_card.png')}
+          source={
+            event?.coverImageUrl
+              ? { uri: event.coverImageUrl }
+              : require('../../../assets/images/default_card.png')
+          }
           className="mx-7 mt-4 rounded-[20px]"
           resizeMode="cover"
-          style={{ width: '86%', height: 188 }}
+          style={{ width: '86%', height: undefined, aspectRatio: 16 / 9 }} // mantém 16:9 bonito
         />
+
 
         <View className="mt-6 px-7">
           <Text className="font-medium text-black" style={{ fontSize: 28, lineHeight: 42 }}>

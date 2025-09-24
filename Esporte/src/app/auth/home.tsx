@@ -36,6 +36,8 @@ export interface EventResponse {
   endTime: string;
   price: string | number;
   description: string;
+  coverImageUrl?: string | null;
+
 }
 
 const DEFAULT_IMAGE = require('../../assets/images/default_card.png');
@@ -318,8 +320,11 @@ const handleEventPress = (eventId: number) => {
               location={ev.location}
               date={ev.date}
               participants={0}
-              image={DEFAULT_IMAGE}
-              price={priceLabel(ev.price)}
+              image={
+                ev.coverImageUrl
+                  ? { uri: ev.coverImageUrl } // usa a foto do Cloudinary
+                  : DEFAULT_IMAGE              // fallback
+              }              price={priceLabel(ev.price)}
               onPress={() => handleEventPress(ev.id)}
             />
           ))
