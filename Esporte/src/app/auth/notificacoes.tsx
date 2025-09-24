@@ -1,15 +1,7 @@
-// src/app/notificacoes/index.tsx
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
-  SafeAreaView,
-  View,
-  Text,
-  StatusBar,
-  TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-  Alert,
-  FlatList,
+  SafeAreaView, View, Text, StatusBar, TouchableOpacity,
+  ActivityIndicator, RefreshControl, Alert, FlatList,
 } from "react-native";
 import { useAuth } from "@clerk/clerk-expo";
 
@@ -20,6 +12,8 @@ import {
   getMyNotifications,
   acceptEventEntry,
   declineEventEntry,
+  markNotificationRead,      // <-- novo
+  archiveNotification,       // <-- opcional
   NotificationDTO,
 } from "../../services/NotificationService";
 import { attachAuth } from "@/src/services/Api";
@@ -32,7 +26,6 @@ export default function Notificacoes() {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    // injeta JWT do Clerk em TODAS as chamadas via api
     attachAuth(() => getToken({ template: "backend", skipCache: true }));
   }, [getToken]);
 
@@ -40,22 +33,25 @@ export default function Notificacoes() {
     if (!isLoaded || !isSignedIn) return;
     try {
       setLoading(true);
-      const data = await getMyNotifications();
+      // só ativas (NEW/READ) → RESOLVED/ARCHIVED não voltam
+      const data = await getMyNotifications("active");
       setNotifications(data);
+
+      // marca como lidas as que ainda estão NEW (fire-and-forget)
+      const toRead = data.filter(n => n.status === "NEW");
+      if (toRead.length) {
+        Promise.allSettled(toRead.map(n => markNotificationRead(n.id))).catch(() => {});
+      }
     } catch (err: any) {
-      Alert.alert(
-        "Erro",
-        err?.response?.data?.message || err?.message || "Falha ao carregar notificações"
-      );
+      Alert.alert("Erro",
+        err?.response?.data?.message || err?.message || "Falha ao carregar notificações");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   }, [isLoaded, isSignedIn]);
 
-  useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
+  useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -66,12 +62,11 @@ export default function Notificacoes() {
     if (!entryId) return;
     try {
       await acceptEventEntry(entryId);
-      setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+      // otimismo: remove da lista; backend já marcou RESOLVED
+      setNotifications(prev => prev.filter(n => n.id !== notificationId));
     } catch (err: any) {
-      Alert.alert(
-        "Erro",
-        err?.response?.data?.message || err?.message || "Não foi possível aceitar a solicitação"
-      );
+      Alert.alert("Erro",
+        err?.response?.data?.message || err?.message || "Não foi possível aceitar a solicitação");
     }
   };
 
@@ -79,12 +74,21 @@ export default function Notificacoes() {
     if (!entryId) return;
     try {
       await declineEventEntry(entryId);
-      setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+      setNotifications(prev => prev.filter(n => n.id !== notificationId));
     } catch (err: any) {
-      Alert.alert(
-        "Erro",
-        err?.response?.data?.message || err?.message || "Não foi possível recusar a solicitação"
-      );
+      Alert.alert("Erro",
+        err?.response?.data?.message || err?.message || "Não foi possível recusar a solicitação");
+    }
+  };
+
+  // (Opcional) ação de arquivar em notificações informativas
+  const handleArchive = async (notificationId: number) => {
+    try {
+      await archiveNotification(notificationId);
+      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+    } catch (err: any) {
+      Alert.alert("Erro",
+        err?.response?.data?.message || err?.message || "Não foi possível arquivar");
     }
   };
 
@@ -110,31 +114,33 @@ export default function Notificacoes() {
         </TouchableOpacity>
       </View>
 
-<FlatList
-  data={notifications}
-  keyExtractor={(n) => String(n.id)}
-  renderItem={({ item }) => {
-    console.log(item);
-    if (item.type === "entry_request") {
-      return (
-        <ParticipationRequest
-          userName={item.actorName || "Usuário"}
-          timestamp={item.timestamp}
-          avatarUrl={item.actorPhoto || undefined}
-          fallbackImage={require("../../assets/images/participante.png")}
-          description={item.description} // exibe o texto do backend também
-          onAccept={() => handleAccept(item.entryId, item.id)}
-          onDecline={() => handleDecline(item.entryId, item.id)}
-        />
-      );
-    }
-    return <NotificationItem notification={item} />;
-  }}
-
+      <FlatList
+        data={notifications}
+        keyExtractor={(n) => String(n.id)}
+        renderItem={({ item }) => {
+          if (item.type === "entry_request") {
+            // Como só listamos active, aqui só virão NEW/READ
+            return (
+              <ParticipationRequest
+                userName={item.actorName || "Usuário"}
+                timestamp={item.timestamp}
+                avatarUrl={item.actorPhoto || undefined}
+                fallbackImage={require("../../assets/images/participante.png")}
+                description={item.description}
+                onAccept={() => handleAccept(item.entryId, item.id)}
+                onDecline={() => handleDecline(item.entryId, item.id)}
+              />
+            );
+          }
+          return (
+            <NotificationItem
+              notification={item}
+              onArchive={() => handleArchive(item.id)} // opcional
+            />
+          );
+        }}
         contentContainerStyle={{ paddingBottom: 120 }}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           <View className="px-6">
             <Text className="text-gray-500">Sem notificações por aqui…</Text>

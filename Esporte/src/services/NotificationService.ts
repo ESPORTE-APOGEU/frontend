@@ -16,11 +16,15 @@ export type NotificationDTO = {
   actorId?: string | null;
   actorName?: string | null;
   actorPhoto?: string | null;
+
+  status: "NEW" | "READ" | "RESOLVED" | "ARCHIVED";
+  readAt?: string | null;
+  resolvedAt?: string | null;
+  archivedAt?: string | null;
 };
 
-/** Lista minhas notificações (usa JWT do Clerk via interceptor). */
-export async function getMyNotifications(): Promise<NotificationDTO[]> {
-  const { data } = await api.get("/notifications");
+export async function getMyNotifications(scope: "active" | "all" = "active"): Promise<NotificationDTO[]> {
+  const { data } = await api.get(`/notifications`, { params: { scope } });
   return data;
 }
 
@@ -31,3 +35,14 @@ export async function acceptEventEntry(entryId: number) {
 export async function declineEventEntry(entryId: number) {
   return api.post(`/event-entries/${entryId}/decline`, {});
 }
+
+// novos helpers
+export async function markNotificationRead(id: number) {
+  await api.patch(`/notifications/${id}/read`);
+}
+
+export async function archiveNotification(id: number) {
+  await api.patch(`/notifications/${id}/archive`);
+}
+
+

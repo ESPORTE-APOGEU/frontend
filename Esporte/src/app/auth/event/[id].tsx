@@ -21,6 +21,7 @@ type ApiEvent = {
   description: string | null;
   organizerId?: string | null;
   organizerName?: string | null;
+  organizerPhoto?: string | null;
 };
 
 type MyEntry = {
@@ -31,6 +32,16 @@ type MyEntry = {
   requestedAt: string;
 };
 
+type Participant = { id: string; name: string; photo?: string | null };
+type ParticipantsApi = {
+  participants: Participant[];
+  maxParticipants?: number | null;
+  acceptedCount: number;
+  iAmParticipant: boolean; 
+};
+
+
+
 const BGCOLOR = '#F7FFED';
 const GREEN = '#43A047';
 const CHIP = '#7ABD7A';
@@ -40,6 +51,10 @@ export default function EventDetails() {
   const eventId = Number(id);
   const { getToken, isLoaded, isSignedIn } = useAuth();
 
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [acceptedCount, setAcceptedCount] = useState<number>(0);
+  const [maxParticipants, setMaxParticipants] = useState<number | undefined>(undefined);
+  const [iAmParticipant, setIAmParticipant] = useState<boolean>(false); 
   const [loading, setLoading] = useState(false);
   const [event, setEvent] = useState<ApiEvent | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -80,9 +95,10 @@ useEffect(() => {
     setLoading(true);
     setError(null);
     try {
-      const [evRes, meRes] = await Promise.all([
+      const [evRes, meRes, partsRes] = await Promise.all([
         api.get(`/events/${eventId}`), // mantém
-        api.get(`/event-entries/me`, { params: { eventId }, validateStatus: () => true }), // <-- AQUI
+        api.get(`/event-entries/me`, { params: { eventId }, validateStatus: () => true }),
+        api.get(`/events/${eventId}/participants`), 
       ]);
 
       setEvent(evRes.data);
@@ -90,6 +106,11 @@ useEffect(() => {
       if (meRes.status === 204) setMyEntry(null);
       else if (meRes.status === 200) setMyEntry(meRes.data as MyEntry);
       else if (meRes.status === 401) setError('Sessão expirada.');
+      const parts: ParticipantsApi = partsRes.data;
+      setParticipants(parts.participants || []);
+      setAcceptedCount(parts.acceptedCount || 0);
+      setMaxParticipants(parts.maxParticipants ?? undefined);
+      setIAmParticipant(!!parts.iAmParticipant);
     } catch (err: any) {
       const msg = err?.response
         ? `Erro ${err.response.status}: ${typeof err.response.data === 'string'
@@ -126,6 +147,7 @@ const handleSolicitarEntrada = async () => {
   const dateLabel = useMemo(() => formatDate(event?.date), [event?.date]);
 
   const cta = useMemo(() => {
+    if (iAmParticipant) return { label: 'Você já está dentro', disabled: true }; 
     if (!myEntry) return { label: 'Solicitar entrada', disabled: false };
     if (myEntry.status === 'PENDING') return { label: 'Solicitação pendente', disabled: true };
     if (myEntry.status === 'ACCEPTED') return { label: 'Você já está dentro', disabled: true };
@@ -209,7 +231,11 @@ const handleSolicitarEntrada = async () => {
             bgColor={CHIP}
             icon={<Ionicons name="people-outline" size={20} color="#fff" />}
             title={'Vagas restantes'}
-            subtitle={'—'}
+            subtitle={
+                typeof maxParticipants === 'number'
+                  ? `${Math.max(0, maxParticipants - acceptedCount)} de ${maxParticipants}`
+                  : '—'
+              }
           />
         </View>
 
@@ -240,37 +266,46 @@ const handleSolicitarEntrada = async () => {
 
           <View className="mt-3 flex-row items-center">
             <Image
-              source={require('../../../assets/images/amigo1.png')}
+              source={
+                event.organizerPhoto
+                  ? { uri: event.organizerPhoto }
+                  : require('../../../assets/images/amigo1.png') // fallback
+              }
               style={{
                 width: 48, height: 48, borderRadius: 30,
                 shadowColor: '#000', shadowOpacity: 0.25,
                 shadowOffset: { width: 0, height: 2 }, shadowRadius: 4, elevation: 4,
               }}
             />
+
             <Text className="ml-3 text-black" style={{ fontSize: 16, lineHeight: 19 }}>
               {event.organizerName || 'Organizador'}
             </Text>
           </View>
         </View>
 
-        {/* Participantes (placeholder) */}
         <View className="mt-8 px-7 mb-2">
           <Text className="font-medium text-black" style={{ fontSize: 24, lineHeight: 36 }}>
             Participantes
           </Text>
-          <View className="mt-3 flex-row items-center">
-            <Image source={require('../../../assets/images/amigo2.png')} style={{ width: 44, height: 44, borderRadius: 30 }} />
-            <Text className="ml-3 text-black" style={{ fontSize: 16, lineHeight: 19 }}>
-              Alexandre Silva
-            </Text>
-          </View>
-          <View className="mt-3 flex-row items-center">
-            <Image source={require('../../../assets/images/amigo3.png')} style={{ width: 48, height: 48, borderRadius: 30 }} />
-            <Text className="ml-3 text-black" style={{ fontSize: 16, lineHeight: 19 }}>
-              Jéssica Oliveira
-            </Text>
-          </View>
+
+          {participants.length === 0 ? (
+            <Text className="mt-2 text-[#979696]">Ainda não há participantes.</Text>
+          ) : (
+            participants.map((p) => (
+              <View key={p.id} className="mt-3 flex-row items-center">
+                <Image
+                  source={p.photo ? { uri: p.photo } : require('../../../assets/images/participante.png')}
+                  style={{ width: 48, height: 48, borderRadius: 30 }}
+                />
+                <Text className="ml-3 text-black" style={{ fontSize: 16, lineHeight: 19 }}>
+                  {p.name || 'Participante'}
+                </Text>
+              </View>
+            ))
+          )}
         </View>
+
       </ScrollView>
 
       {/* CTA fixo */}

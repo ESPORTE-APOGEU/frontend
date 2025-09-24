@@ -10,7 +10,10 @@ const iconMap = {
   info: require("../assets/images/info_icon.png"),
 } as const;
 
-type Props = { notification: NotificationDTO };
+type Props = {
+  notification: NotificationDTO;
+  onArchive?: () => void; // opcional
+};
 
 export default function NotificationItem({ notification }: Props) {
   const iconKey =
