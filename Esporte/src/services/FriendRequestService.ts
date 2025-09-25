@@ -3,7 +3,7 @@ import {api} from "@/src/services/Api";
 
 const API_URL = "/friend-requests";
 
-export const createFriendRequest = async (receiverId: number | string) => {
+export const createFriendRequest = async (receiverId:string) => {
     const response = await api.post(API_URL, null, {
         params: { receiverId },
     });
@@ -11,7 +11,7 @@ export const createFriendRequest = async (receiverId: number | string) => {
 };
 
 export const getPendingRequests = async () => {
-    console.log(`${API_URL}/pending`);
+    console.log(`Buscando em: ${api.defaults.baseURL}${API_URL}/pending`); // Log para depuração
     const response = await api.get(`${API_URL}/pending`);
     return response.data;
 };

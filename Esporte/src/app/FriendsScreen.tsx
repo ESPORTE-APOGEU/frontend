@@ -47,6 +47,15 @@ export default function FriendsScreen() {
   // Mantido: sua função original para buscar sugestões, agora usando o serviço atualizado
   const fetchFriendSuggestions = async () => {
     try {
+      const data = await getFriendSuggestions();
+      const formattedData = data.map((sug: any) => ({
+        id: sug.id,
+        name: sug.name || "Usuário",
+        avatar: sug.photo || "default_avatar_url", // Use um avatar padrão
+        mutualCount: sug.mutualCount || 0,
+        mutualInfo: sug.mutualCount > 0 ? `${sug.mutualCount} esporte(s) em comum` : "Nenhum esporte em comum",
+      }));
+      setSuggestions(formattedData);
     } catch (error) {
       console.error("Erro ao buscar sugestões:", error);
       Alert.alert("Erro", "Não foi possível carregar as sugestões de amizade.");
