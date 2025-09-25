@@ -1,7 +1,7 @@
 // Em: components/NotificationItem.js
 
 import React from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import { View, Text, Image, StyleSheet, ImageBackground } from 'react-native';
 import { formatRelativeTime } from '../utils/date';
 import { Notification } from '../app/notificacoes';
 
@@ -30,9 +30,15 @@ export default function NotificationItem({
 }: NotificationItemProps & Props) {
   return (
     <View style={styles.container}>
-      <View style={styles.iconContainer}>
+      {/* Fundo do ícone com RETANGULO */}
+      <ImageBackground
+        source={require('../assets/images/RETANGULO.png')}
+        style={styles.iconBg}
+        imageStyle={{ borderRadius: 12 }}
+      >
         <Image source={iconMap[iconName]} style={styles.icon} resizeMode="contain" />
-      </View>
+      </ImageBackground>
+
       <View style={styles.content}>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.message}>{description}</Text>
@@ -47,23 +53,21 @@ export default function NotificationItem({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    marginBottom: 24,
-    padding: 16,
-    borderBottomWidth: 1,
-    borderColor: '#ccc',
+    marginBottom: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    // removido: borderBottomWidth/borderColor (traço separador)
   },
-  iconContainer: {
+  iconBg: {
     width: 40,
-    height: 40,
-    backgroundColor: '#25D366',
-    borderRadius: 20,
+    height: 38,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginRight: 12,
   },
   icon: {
-    width: 24,
-    height: 24,
+    width: 22,
+    height: 22,
   },
   content: {
     flex: 1,

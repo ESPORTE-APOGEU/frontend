@@ -9,6 +9,7 @@ import {
   ImageSourcePropType
 } from "react-native";
 import { formatRelativeTime } from "../utils/date";
+import { Feather } from "@expo/vector-icons"; // ← ícones com traço fino
 
 export interface ParticipationRequestProps {
   userImage: ImageSourcePropType;
@@ -46,7 +47,8 @@ export default function ParticipationRequest({
           activeOpacity={0.7}
           className="p-2"
         >
-          <Text className="text-green-500 text-2xl font-bold">✓</Text>
+          {/* traço fino */}
+          <Feather name="check" size={22} color="#22c55e" />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={onDecline}
@@ -54,7 +56,8 @@ export default function ParticipationRequest({
           activeOpacity={0.7}
           className="p-2 ml-2"
         >
-          <Text className="text-red-500 text-3xl font-bold">×</Text>
+          {/* traço fino */}
+          <Feather name="x" size={22} color="#ef4444" />
         </TouchableOpacity>
       </View>
     </View>
