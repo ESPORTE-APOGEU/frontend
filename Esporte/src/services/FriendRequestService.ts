@@ -16,9 +16,10 @@ export const getPendingRequests = async () => {
     return response.data;
 };
 
-export const respondToRequest = async (requestId: number | string, status: "ACCEPTED" | "REJECTED") => {
-    const response = await api.post(`${API_URL}/${requestId}/respond`, null, {
-        params: { status },
-    });
-    return response.data;
+export const respondToRequest = async (
+  requestId: number | string,
+  status: "ACCEPTED" | "DECLINED"   
+) => {
+  const response = await api.post(`/friend-requests/${requestId}/respond`, null, { params: { status } });
+  return response.data;
 };

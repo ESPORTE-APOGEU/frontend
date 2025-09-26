@@ -1,13 +1,12 @@
 import React from "react";
-import { View, Text, Image, TouchableOpacity } from "react-native";
-import { images } from "../assets/images";
+import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
 
 export type Suggestion = {
   id: string;
   name: string;
-  avatar: keyof typeof images;
+  avatar?: string | null; // URL
   mutualCount: number;
-  mutualAvatars?: (keyof typeof images)[];
+  mutualAvatars?: string[];
 };
 
 interface Props {
@@ -16,41 +15,98 @@ interface Props {
 }
 
 export function FriendSuggestions({ suggestions, onConnect }: Props) {
+  const fallback = require("../assets/images/Calendar.png");
+
   return (
     <>
-      <Text className="text-black font-bold text-xl px-4 mb-4">
-        Sugestão de amigos
-      </Text>
+      <Text style={styles.sectionTitle}>Sugestão de amigos</Text>
+
       {suggestions.map((s) => (
-        <View
-          key={s.id}
-          className="flex-row items-center rounded-lg px-4 py-3 mx-4 mb-3"
-        >
+        <View key={s.id} style={styles.row}>
+          {/* avatar 34x34 com sombra */}
           <Image
-            source={images[s.avatar]}
-            className="w-8 h-8 rounded-full mr-4"
+            source={s.avatar ? { uri: s.avatar } : fallback}
+            style={styles.avatar}
           />
-          <Text className="flex-1 text-black font-medium text-base">
-            {s.name}
-          </Text>
-          <View className="flex-row items-center mr-1">
-            {(s.mutualAvatars ?? []).slice(0, 3).map((m, i) => (
-              <Image
-                key={i}
-                source={images[m]}
-                className={`w-6 h-6 rounded-full ${i ? "-ml-2" : ""}`}
-              />
-            ))}
+
+          <View style={{ flex: 1 }}>
+            <Text style={styles.name}>{s.name}</Text>
           </View>
-          <Text className="text-black text-base mr-2">{s.mutualCount}</Text>
+
+          {/* contador simples à direita, como no figma (“4”, “6”, etc.) */}
+          <Text style={styles.countText}>{s.mutualCount}</Text>
+
+          {/* botão verde “Adicionar” 96x28 radius 10.5, Poppins 12 branco */}
           <TouchableOpacity
-            className="w-24 h-7 bg-green-500 rounded-lg justify-center items-center"
+            style={styles.addBtn}
             onPress={() => onConnect(s.id)}
           >
-            <Text className="text-white font-bold text-[12px]">Connect</Text>
+            <Text style={styles.addBtnText}>Adicionar</Text>
           </TouchableOpacity>
         </View>
       ))}
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  sectionTitle: {
+    color: "#000",
+    fontFamily: "Poppins",
+    fontWeight: "600",
+    fontSize: 20,
+    lineHeight: 30,
+    paddingLeft: 28,
+    marginBottom: 8,
+    marginTop: 8,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 28,
+    marginBottom: 12,
+    paddingVertical: 6,
+  },
+  avatar: {
+    width: 34,
+    height: 34,
+    borderRadius: 30,
+    marginRight: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 2,
+    backgroundColor: "#EAEAEA",
+  },
+  name: {
+    color: "#000",
+    fontFamily: "SF Pro",
+    fontWeight: "600",
+    fontSize: 16,
+    lineHeight: 19,
+  },
+  countText: {
+    color: "#000",
+    fontFamily: "SF Pro",
+    fontWeight: "400",
+    fontSize: 20,
+    lineHeight: 24,
+    marginRight: 8,
+  },
+  addBtn: {
+    width: 96,
+    height: 28,
+    borderRadius: 10.5,
+    backgroundColor: "#43A047", // verde figma
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addBtnText: {
+    color: "#FFF",
+    fontFamily: "Poppins",
+    fontWeight: "500",
+    fontSize: 12,
+    lineHeight: 18,
+  },
+});

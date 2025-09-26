@@ -1,16 +1,12 @@
-// src/components/FriendRequests.tsx
-import React, { ReactNode } from "react";
-import { View, Text, Image, TouchableOpacity } from "react-native";
+import React from "react";
+import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { FontAwesome5 } from "@expo/vector-icons";
-import { images } from "../assets/images";
 
 export type Request = {
-  mutualCount: ReactNode;
   id: string;
   name: string;
-  avatar: keyof typeof images;
-  // Removemos city e role
+  avatar?: string | null;   // URL
+  mutualCount?: number;     // opcional
 };
 
 interface Props {
@@ -20,50 +16,109 @@ interface Props {
 }
 
 export function FriendRequests({ requests, onAccept, onReject }: Props) {
+  const fallback = require("../assets/images/Calendar.png"); // fallback local
+
   return (
     <>
-      <Text className="text-black font-bold text-xl px-4 mb-4">
-        Solicitações de amizade
-      </Text>
+
       {requests.map((r) => (
-        <View
-          key={r.id}
-          className="flex-row items-start rounded-lg px-4 py-3 mx-4 mb-3"
-        >
+        <View key={r.id} style={styles.row}>
+          {/* avatar 43x43 com leve sombra */}
           <Image
-            source={images[r.avatar]}
-            className="w-11 h-11 rounded-full mr-4"
+            source={r.avatar ? { uri: r.avatar } : fallback}
+            style={styles.avatar}
           />
-          <View className="flex-1">
-            <Text className="text-black font-medium text-base">
-              {r.name}
-            </Text>
-            <View className="flex-row items-center mt-1">
-              <FontAwesome5 
-                name="user-friends" 
-                size={12} 
-                color="#424242" 
-                className="mr-1" 
-              />
-              <Text className="text-gray-600 text-[12px]">
+
+          <View style={{ flex: 1 }}>
+            <Text style={styles.name}>{r.name}</Text>
+
+            {!!r.mutualCount && r.mutualCount > 0 && (
+              <Text style={styles.mutualText}>
                 {r.mutualCount} amigos em comum
               </Text>
-            </View>
+            )}
           </View>
+
+          {/* botões pequenos “quadradinhos” (32x32) com borda verde, como no figma */}
+
           <TouchableOpacity
-            className="w-6 h-6 border border-gray-700 rounded-full mr-2 justify-center items-center"
-            onPress={() => onReject(r.id)}
-          >
-            <Feather name="x" size={10} color="#000000" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            className="w-6 h-6 border border-blue-400 rounded-full justify-center items-center"
+            style={[styles.squareBtn, styles.squareBtnOutline]}
             onPress={() => onAccept(r.id)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Feather name="check" size={10} color="#587DBD" />
+            <Feather name="check" size={14} color="rgba(16,207,101,0.76)" />
           </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[styles.squareBtn, styles.squareBtnOutline]}
+            onPress={() => onReject(r.id)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Feather name="x" size={14} color="rgba(16,207,101,0.76)" />
+          </TouchableOpacity>
+
+
         </View>
       ))}
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  sectionTitle: {
+    color: "#000",
+    fontFamily: "Poppins",
+    fontWeight: "600",
+    fontSize: 20,
+    lineHeight: 30,
+    paddingLeft: 28,
+    marginBottom: 12,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 28,
+    marginBottom: 12,
+    paddingVertical: 8,
+  },
+  avatar: {
+    width: 43,
+    height: 43,
+    borderRadius: 30,
+    marginRight: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 2,
+    backgroundColor: "#EAEAEA",
+  },
+  name: {
+    color: "#000",
+    fontFamily: "SF Pro",
+    fontWeight: "600",
+    fontSize: 16,
+    lineHeight: 19,
+  },
+  mutualText: {
+    marginTop: 4,
+    color: "rgba(41,45,50,0.7)",
+    fontFamily: "SF Pro",
+    fontWeight: "400",
+    fontSize: 14,
+    lineHeight: 17,
+  },
+  squareBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 11.3,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 8,
+    backgroundColor: "transparent",
+  },
+  squareBtnOutline: {
+    borderWidth: 0.56,
+    borderColor: "rgba(16,207,101,0.76)",
+  },
+});

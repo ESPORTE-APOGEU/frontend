@@ -31,11 +31,10 @@ export default function FriendsScreen() {
       const data = await getPendingRequests(); // Não precisa mais de ID
       console.log(data);
       const formattedData = data.map((req: any) => ({
-        id: req.id,
+        id: String(req.id),
         name: req.sender?.name || "Nome não informado",
-        avatar: req.sender?.photo || "iconedocaba",
-        mutualCount: 0,
-        mutualAvatars: []
+        avatar: req.sender?.photo || null,  // << URL vinda do back
+        mutualCount: req.mutualCount ?? 0,
       }));
       setRequests(formattedData);
     } catch (error) {
@@ -45,22 +44,21 @@ export default function FriendsScreen() {
   };
 
   // Mantido: sua função original para buscar sugestões, agora usando o serviço atualizado
-  const fetchFriendSuggestions = async () => {
-    try {
-      const data = await getFriendSuggestions();
-      const formattedData = data.map((sug: any) => ({
-        id: sug.id,
-        name: sug.name || "Usuário",
-        avatar: sug.photo || "default_avatar_url", // Use um avatar padrão
-        mutualCount: sug.mutualCount || 0,
-        mutualInfo: sug.mutualCount > 0 ? `${sug.mutualCount} esporte(s) em comum` : "Nenhum esporte em comum",
-      }));
-      setSuggestions(formattedData);
-    } catch (error) {
-      console.error("Erro ao buscar sugestões:", error);
-      Alert.alert("Erro", "Não foi possível carregar as sugestões de amizade.");
-    }
-  };
+    const fetchFriendSuggestions = async () => {
+      try {
+        const data = await getFriendSuggestions();
+        const formattedData = data.map((sug: any) => ({
+          id: sug.id,
+          name: sug.name || "Usuário",
+          avatar: sug.avatar || null,          // << usar 'avatar' do back
+          mutualCount: sug.mutualCount || 0,
+        }));
+        setSuggestions(formattedData);
+      } catch (error) {
+        console.error("Erro ao buscar sugestões:", error);
+        Alert.alert("Erro", "Não foi possível carregar as sugestões de amizade.");
+      }
+    };
 
   const onRefresh = useCallback(async () => {
     if (!isLoaded || !isSignedIn) return;   // <-- inclui isLoaded
@@ -73,23 +71,15 @@ export default function FriendsScreen() {
     onRefresh();
   }, [onRefresh]);
 
-  const handleAccept = async (requestId: string) => {
-    try {
+    const handleAccept = async (requestId: string) => {
       await respondToRequest(requestId, "ACCEPTED");
       setRequests((prev) => prev.filter((r) => r.id !== requestId));
-    } catch (error) {
-      console.error("Erro ao aceitar solicitação:", error);
-    }
-  };
+    };
 
-  const handleReject = async (requestId: string) => {
-    try {
-      await respondToRequest(requestId, "REJECTED");
+    const handleReject = async (requestId: string) => {
+      await respondToRequest(requestId, "DECLINED"); // << era "REJECTED"
       setRequests((prev) => prev.filter((r) => r.id !== requestId));
-    } catch (error) {
-      console.error("Erro ao rejeitar solicitação:", error);
-    }
-  };
+    };
 
   const handleConnect = async (receiverId: string) => {
     try {
@@ -107,45 +97,63 @@ export default function FriendsScreen() {
       (s.name || "").toLowerCase().includes(search.toLowerCase())
   );
 
-  return (
-      <SafeAreaView style={styles.container}>
-        <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        >
-          <View style={styles.searchRow}>
-            <View style={{ flex: 1 }}>
-              <SearchBar placeholder="Quem você procura" value={search} onChangeText={setSearch} />
-            </View>
-            <TouchableOpacity style={styles.cancelButton}>
-              <Text style={styles.cancelText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.section}>
-            <FriendRequests requests={filteredRequests} onAccept={handleAccept} onReject={handleReject} />
-          </View>
-          <View style={styles.section}>
-            <FriendSuggestions suggestions={filteredSuggestions} onConnect={handleConnect} />
-          </View>
-        </ScrollView>
-        <View style={styles.bottomNav}>
-          <BottomNavigation />
+return (
+  <SafeAreaView style={styles.container}>
+    <ScrollView
+      contentContainerStyle={styles.scrollContent}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    >
+      {/* Search + Cancel (mesma estrutura, estilos ajustados) */}
+      <View style={styles.searchRow} className="mt-14">
+        <View style={{ flex: 1 }}>
+          <SearchBar placeholder="Quem você procura" value={search} onChangeText={setSearch} />
         </View>
-      </SafeAreaView>
-  );
+        <TouchableOpacity style={styles.cancelButton}>
+          <Text style={styles.cancelText}>Cancel</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.section}>
+        <FriendRequests requests={filteredRequests} onAccept={handleAccept} onReject={handleReject} />
+      </View>
+
+      <View style={styles.section}>
+        <FriendSuggestions suggestions={filteredSuggestions} onConnect={handleConnect} />
+      </View>
+    </ScrollView>
+
+    <View style={styles.bottomNav}>
+      <BottomNavigation />
+    </View>
+  </SafeAreaView>
+);
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F2F2F2" },
+  container: { flex: 1, backgroundColor: "#F7FFED" }, // fundo do figma
   scrollContent: { paddingBottom: 120 },
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
+    paddingHorizontal: 28,    // margem esquerda de 28px como no figma
     paddingTop: 24,
   },
   cancelButton: { marginLeft: 12 },
-  cancelText: { color: "#000", fontSize: 14 },
+  cancelText: {
+    color: "#000",
+    fontSize: 14,             // Poppins 14 no figma
+    fontFamily: "Poppins",
+  },
   section: { marginTop: 24 },
-  bottomNav: { position: "absolute", bottom: 0, left: 0, right: 0 },
+  bottomNav: {
+    position: "absolute",
+    left: 0, right: 0, bottom: 40,
+    backgroundColor: "#FDFFF9",
+    shadowColor: "rgba(13,10,44,0.06)",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 12,
+    elevation: 8,
+    paddingTop: 6,
+  },
 });
