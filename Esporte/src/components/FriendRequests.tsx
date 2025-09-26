@@ -15,8 +15,8 @@ export type Request = {
 
 interface Props {
   requests: Request[];
-  onAccept: (requestId: number) => void;
-  onReject: (requestId: number) => void;
+  onAccept: (requestId: string) => void;
+  onReject: (requestId: string) => void;
 }
 
 export function FriendRequests({ requests, onAccept, onReject }: Props) {
@@ -52,13 +52,13 @@ export function FriendRequests({ requests, onAccept, onReject }: Props) {
           </View>
           <TouchableOpacity
             className="w-6 h-6 border border-gray-700 rounded-full mr-2 justify-center items-center"
-            onPress={() => onReject(Number(r.id))}
+            onPress={() => onReject(r.id)}
           >
             <Feather name="x" size={10} color="#000000" />
           </TouchableOpacity>
           <TouchableOpacity
             className="w-6 h-6 border border-blue-400 rounded-full justify-center items-center"
-            onPress={() => onAccept(Number(r.id))}
+            onPress={() => onAccept(r.id)}
           >
             <Feather name="check" size={10} color="#587DBD" />
           </TouchableOpacity>

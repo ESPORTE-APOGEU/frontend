@@ -12,7 +12,7 @@ export type Suggestion = {
 
 interface Props {
   suggestions: Suggestion[];
-  onConnect: (receiverId: number) => void;
+  onConnect: (receiverId: string) => void;
 }
 
 export function FriendSuggestions({ suggestions, onConnect }: Props) {
@@ -45,7 +45,7 @@ export function FriendSuggestions({ suggestions, onConnect }: Props) {
           <Text className="text-black text-base mr-2">{s.mutualCount}</Text>
           <TouchableOpacity
             className="w-24 h-7 bg-green-500 rounded-lg justify-center items-center"
-            onPress={() => onConnect(Number(s.id))}
+            onPress={() => onConnect(s.id)}
           >
             <Text className="text-white font-bold text-[12px]">Connect</Text>
           </TouchableOpacity>
