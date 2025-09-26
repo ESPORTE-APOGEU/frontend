@@ -190,6 +190,7 @@ function extractParts(n: NotificationDTO) {
                 iconName="whatsapp"
                 tagText={eventName || item.tagText || ""}
                 tagUrl={item.tagUrl}
+                onArchive={() => handleArchive(item.id)}
               />
             );
           }
@@ -207,6 +208,7 @@ function extractParts(n: NotificationDTO) {
                 extraText="Você está pronto?!"
                 timestamp={item.timestamp}
                 iconName="calendar"
+                onArchive={() => handleArchive(item.id)}
               />
             );
           }
@@ -225,6 +227,7 @@ function extractParts(n: NotificationDTO) {
                 strongText={location}   // agora preenche
                 timestamp={item.timestamp}
                 iconName="info"
+                onArchive={() => handleArchive(item.id)}
               />
             );
           }
@@ -237,6 +240,7 @@ function extractParts(n: NotificationDTO) {
               message={item.description || ""}
               timestamp={item.timestamp}
               iconName={item.iconName === "calendar" ? "calendar" : "info"}
+              onArchive={() => handleArchive(item.id)}
             />
           );
         }}
