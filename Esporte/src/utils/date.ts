@@ -15,5 +15,5 @@ export function formatRelativeTime(timestamp: string): string {
     const diffMonths = Math.floor(diffDays/30);
     if (diffMonths < 12) return `enviado há ${diffMonths} mês${diffMonths!==1?'es':''}`;
     const diffYears = Math.floor(diffDays/365);
-    return `enviado há ${diffYears} ano${diffYears!==1?'s':''}`;
+    return `Enviado há ${diffYears} ano${diffYears!==1?'s':''}`;
 }

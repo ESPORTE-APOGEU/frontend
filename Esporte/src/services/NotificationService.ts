@@ -21,6 +21,8 @@ export type NotificationDTO = {
   readAt?: string | null;
   resolvedAt?: string | null;
   archivedAt?: string | null;
+
+  tagUrl?: string | null;
 };
 
 export async function getMyNotifications(scope: "active" | "all" = "active"): Promise<NotificationDTO[]> {
