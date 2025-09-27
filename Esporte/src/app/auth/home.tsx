@@ -253,13 +253,9 @@ const handleEventPress = (eventId: number) => {
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Header */}
-      <View className="mt-5 flex-row items-center justify-between px-4 bg-[#F8F9FA]">
+      <View className="flex-row items-center justify-between px-4 bg-[#F8F9FA] mt-14">
         <View className="flex-row items-center flex-1">
-          <Image
-            source={require('../../assets/images/logo_home.png')}
-            className="w-9 h-9 mr-2"
-            resizeMode="contain"
-          />
+
           <View className="flex-1">
             <SearchBar
               placeholder="What are you looking for?"
@@ -269,7 +265,7 @@ const handleEventPress = (eventId: number) => {
           </View>
         </View>
         <TouchableOpacity className="ml-2.5" onPress={() => handleNotificationPress()} >
-          <Ionicons name="notifications-outline" size={26} color="#007AFF" />
+          <Ionicons name="notifications-outline" size={26} color="#000000" />
         </TouchableOpacity>
       </View>
 
