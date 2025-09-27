@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
-import { useAuth, useUser } from "@clerk/clerk-expo";
+import { useUser } from "@clerk/clerk-expo";
 
 import FlutterBar from "@/src/assets/icons/flutter-bar.svg";
 import HomeIcon from "../assets/icons/home.svg";
@@ -21,7 +21,6 @@ import PeoplesIcon from "../assets/icons/peoples.svg";
 export default function BottomNavigation() {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const { signOut } = useAuth();
   const { user } = useUser();
 
   const BAR_ASPECT_RATIO = 91 / 400;
@@ -39,10 +38,7 @@ export default function BottomNavigation() {
   const handleHomePress = () => router.push("/auth/home");
   const handlePeoplesPress = () => router.push("/FriendsScreen");
   const handleAddPress = () => router.push("/public/criarEvento");
-  const handleLogoutPress = async () => {
-    try { await signOut(); } catch {}
-    router.replace("/auth/sign-in");
-  };
+  const handleSettingsPress = () => router.push("/auth/settings");
   const handleProfilePress = () => router.push("/auth/profileScreen");
 
   const photoUrl = user?.imageUrl ?? undefined;
@@ -80,11 +76,12 @@ export default function BottomNavigation() {
 
         <View style={{ width: FAB_SIZE }} />
 
-        <TouchableOpacity style={styles.navItem} onPress={handleLogoutPress}>
+        {/* Config leva para a página de settings */}
+        <TouchableOpacity style={styles.navItem} onPress={handleSettingsPress}>
           <ConfigIcon width={24} height={24} />
         </TouchableOpacity>
 
-        {/* Avatar do usuário (leva ao perfil) */}
+        {/* Avatar do usuário (perfil) */}
         <TouchableOpacity style={styles.navItem} onPress={handleProfilePress}>
           {photoUrl ? (
             <Image source={{ uri: photoUrl }} style={styles.avatar} />
@@ -118,19 +115,8 @@ export default function BottomNavigation() {
 const AVATAR_SIZE = 28;
 
 const styles = StyleSheet.create({
-  root: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: "flex-end",
-  },
-  svg: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
+  root: { position: "absolute", left: 0, right: 0, bottom: 0, justifyContent: "flex-end" },
+  svg: { position: "absolute", left: 0, right: 0, bottom: 0 },
   content: {
     position: "absolute",
     left: 0,
@@ -140,11 +126,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 10,
   },
-  navItem: {
-    width: 54,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  navItem: { width: 54, alignItems: "center", justifyContent: "center" },
   primaryAction: {
     position: "absolute",
     backgroundColor: "#40B843",
@@ -156,11 +138,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 8,
   },
-  avatar: {
-    width: AVATAR_SIZE,
-    height: AVATAR_SIZE,
-    borderRadius: AVATAR_SIZE / 2,
-  },
+  avatar: { width: AVATAR_SIZE, height: AVATAR_SIZE, borderRadius: AVATAR_SIZE / 2 },
   avatarFallback: {
     width: AVATAR_SIZE,
     height: AVATAR_SIZE,
@@ -169,8 +147,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarFallbackText: {
-    color: "#111827",
-    fontWeight: "700",
-  },
+  avatarFallbackText: { color: "#111827", fontWeight: "700" },
 });

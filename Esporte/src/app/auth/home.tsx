@@ -39,7 +39,8 @@ export interface EventResponse {
   price: string | number;
   description: string;
   coverImageUrl?: string | null;
-
+  maxParticipants?: number | null;
+  participantCount?: number | null;
 }
 
 const DEFAULT_IMAGE = require('../../assets/images/default_card.png');
@@ -319,7 +320,8 @@ const handleEventPress = (eventId: number) => {
               eventName={ev.name}
               location={ev.location}
               date={ev.date}
-              participants={0}
+              participants={ev.participantCount ?? 1}          // 👈 usa o total (aceitos + org)
+              maxParticipants={ev.maxParticipants ?? undefined}
               image={
                 ev.coverImageUrl
                   ? { uri: ev.coverImageUrl } // usa a foto do Cloudinary
