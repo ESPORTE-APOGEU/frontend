@@ -22,14 +22,15 @@ import { useProfile } from "@/hooks/useProfile";
 import { attachAuth } from "@/src/services/Api";
 import { Sport } from "@/src/services/UserService";
 
-// ↓ Novos imports vindos da sua versão nova
-import { useMyEvents } from "@/hooks/useMyEvents"
+import { useMyEvents } from "@/hooks/useMyEvents";
 import { Activity } from "@/src/components/profile/ActivityItem";
 import { ActivitiesSection } from "@/src/components/profile/ActivitiesSection";
-import { useRouter, Href } from "expo-router";
+import { useRouter } from "expo-router";
+
+const BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 export default function ProfileScreen() {
-  const router = useRouter(); // 👈 aqui
+  const router = useRouter();
 
   const [tab, setTab] = useState<ActionTabKey>("participados");
 
@@ -38,7 +39,7 @@ export default function ProfileScreen() {
 
   const userId = user?.id as string | undefined;
 
-  // MANTIDO: injeta JWT do Clerk com template 'backend'
+  // Injeta JWT do Clerk com template 'backend'
   useEffect(() => {
     attachAuth(() => getToken({ template: "backend", skipCache: true }));
   }, [getToken]);
@@ -46,13 +47,42 @@ export default function ProfileScreen() {
   // Dados do perfil
   const { data, loading, err, saveSports } = useProfile(userId);
 
-  // NOVO: eventos do usuário (inscritos/participados)
+  // Eventos do usuário (inscritos/participados)
   const {
     registered = [],
     participated = [],
     loading: loadingEvents,
     err: errEvents,
   } = useMyEvents();
+
+  // ---- NOVO: stats por esporte (média 0..3 por nome do esporte) ----
+  const [sportStats, setSportStats] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (!userId || !BASE_URL) return;
+    (async () => {
+      try {
+        const token =
+          (await getToken({ template: "backend", skipCache: true })) ||
+          (await getToken({ template: "backend" }));
+        if (!token) return;
+        const res = await fetch(
+          `${BASE_URL}/api/v1/users/${encodeURIComponent(userId)}/sport-stats`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (!res.ok) return;
+        const list: { sport: string; averageSkill?: number | null }[] =
+          await res.json();
+        const map: Record<string, number> = {};
+        list.forEach((s) => {
+          if (s.averageSkill != null) map[s.sport] = s.averageSkill as number;
+        });
+        setSportStats(map);
+      } catch {
+        // silencioso — a seção de esportes só não mostrará níveis
+      }
+    })();
+  }, [userId]);
 
   // NOVO: util simples para "há X dias/semanas"
   function toTimeAgo(isoDate: string) {
@@ -90,15 +120,15 @@ export default function ProfileScreen() {
       Alert.alert("Erro", e?.message ?? "Não foi possível remover o esporte");
     }
   };
-const openEvent = (eventId: number) => {
-  router.push({
-    pathname: "/auth/event/[id]",
-    params: { id: String(eventId) },
-  });
-};
 
+  const openEvent = (eventId: number) => {
+    router.push({
+      pathname: "/auth/event/[id]",
+      params: { id: String(eventId) },
+    });
+  };
 
-  // NOVO: mapeia “participated” para ActivitiesSection
+  // Mapeia “participated” para ActivitiesSection
   const participatedActivities: Activity[] = (participated ?? []).map((ev) => ({
     id: String(ev.id),
     title: ev.name,
@@ -108,7 +138,6 @@ const openEvent = (eventId: number) => {
   }));
 
   const renderTabContent = () => {
-    // estados da listagem de eventos
     if (loadingEvents) {
       return <Text className="text-black px-7">Carregando…</Text>;
     }
@@ -126,19 +155,18 @@ const openEvent = (eventId: number) => {
               location: ev.location,
               date: new Date(ev.date).toDateString(),
               participants: 0,
-              image: ev.coverImageUrl && ev.coverImageUrl.trim().length > 0
-                ? { uri: ev.coverImageUrl }
-                : require("../../assets/images/default_card.png"),
+              image:
+                ev.coverImageUrl && ev.coverImageUrl.trim().length > 0
+                  ? { uri: ev.coverImageUrl }
+                  : require("../../assets/images/default_card.png"),
               price: ev.price ? String(ev.price) : "Free",
             }))}
-
-            onPressEvent={(ev) => openEvent(ev.id)}   // ← navega
+            onPressEvent={(ev) => openEvent(ev.id)}
             emptyText="Você ainda não se inscreveu em eventos"
           />
         );
 
       case "participados":
-        // NOVO: usa ActivitiesSection em vez do texto estático
         return (
           <ActivitiesSection
             activities={participatedActivities}
@@ -167,8 +195,7 @@ const openEvent = (eventId: number) => {
                 mutualCount: 3,
               },
             ]}
-             emptyText="Você ainda não adicionou amigos"
-
+            emptyText="Você ainda não adicionou amigos"
           />
         );
 
@@ -176,6 +203,14 @@ const openEvent = (eventId: number) => {
         return null;
     }
   };
+
+  // Média global de rating (se vier do backend no DTO do perfil)
+  const avgRating =
+    (data as any)?.totalReceivedEvaluations &&
+    (data as any)?.totalReceivedEvaluations > 0
+      ? ((data as any).totalRating ?? 0) /
+        (data as any).totalReceivedEvaluations
+      : null;
 
   // estados “não logado” ou “Clerk ainda carregando”
   if (!isLoaded) {
@@ -193,9 +228,7 @@ const openEvent = (eventId: number) => {
           Você precisa estar logado para ver o seu perfil.
         </Text>
         <TouchableOpacity
-          onPress={() => {
-            /* router.push('/auth/login') */
-          }}
+          onPress={() => {}}
           className="bg-[#10CF65] px-6 py-3 rounded-xl"
         >
           <Text className="text-white font-medium">Ir para Login</Text>
@@ -220,7 +253,7 @@ const openEvent = (eventId: number) => {
             name={data?.name ?? user?.fullName ?? "—"}
             photoUrl={data?.photo ?? user?.imageUrl ?? undefined}
             stats={{ friends: 144, activities: 12, createdActivities: 2 }}
-            rating="4.80"
+            rating={avgRating != null ? avgRating.toFixed(2) : "—"}
           />
 
           <ProfileInfo
@@ -240,6 +273,7 @@ const openEvent = (eventId: number) => {
                     )
                   : []
               }
+              perSportLevel={sportStats}
               onAddSport={handleAddSport}
               onRemoveSport={handleRemoveSport}
             />

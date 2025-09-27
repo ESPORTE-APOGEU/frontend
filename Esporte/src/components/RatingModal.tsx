@@ -28,6 +28,14 @@ export default function RatingModal({ visible, onClose, user, avaliationId, toke
     }
   }, [visible]);
 
+  const fallback = require('../assets/images/participante.png');
+  const normalizedImageSource =
+    user?.image
+      ? (typeof user.image === 'string' && user.image.trim().length > 0
+          ? { uri: user.image }
+          : user.image) // assume que já é um require(...) válido
+      : fallback;
+
   const levels = ['Iniciante', 'Intermediário', 'Avançado', 'Semiprofissional'];
 
   const handleStarPress = (i: number) => setRating(i);
@@ -87,7 +95,7 @@ export default function RatingModal({ visible, onClose, user, avaliationId, toke
               <Text className="text-center text-[14px] text-[#222] mb-2">Olá!{"\n"}Ajude-nos a melhorar nossa comunidade!{"\n"}Por favor, avalie esse usuário:</Text>
             </View>
 
-            <Image source={user?.image || require('../assets/images/participante.png')} className="w-[92px] h-[92px] rounded-full mt-2 mb-2 self-center" />
+            <Image source={normalizedImageSource} className="w-[92px] h-[92px] rounded-full mt-2 mb-2 self-center" />
             <Text className="font-bold text-[18px] mb-2 text-center self-center">{user?.name || 'Stefane Brito'}</Text>
 
             <Text className="self-start text-[13px] text-[#333] ml-1 mt-1 mb-1 font-semibold">Nota de comunidade:</Text>

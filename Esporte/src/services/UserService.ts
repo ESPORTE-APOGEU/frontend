@@ -45,3 +45,8 @@ export async function updateUserSports(
   const { data } = await api.patch(`/users/me/sports`, sports);
   return data;
 }
+
+export async function getUserById(id: string): Promise<User> {
+  const { data } = await api.get(`/users/${id}`);
+  return data;
+}

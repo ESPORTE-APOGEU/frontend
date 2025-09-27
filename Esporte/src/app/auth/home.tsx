@@ -258,6 +258,7 @@ const handleEventPress = (eventId: number) => {
       {/* Header */}
       <View className="mt-5 mb-2 flex-row items-center justify-between px-4 bg-[#F7FFED]">
         <View className="flex-row items-center flex-1">
+
           <View className="flex-1">
             <SearchBar
               placeholder="Qual evento está procurando?"

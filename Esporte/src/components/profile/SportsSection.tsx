@@ -5,13 +5,23 @@ import { SportCard } from "./SportCard";
 
 export const SportsSection = ({
   sports,
+  perSportLevel,
   onAddSport,
   onRemoveSport,
 }: {
   sports: string[];
+  perSportLevel?: Record<string, number>; // média 0..3 por esporte
   onAddSport?: (sport: string) => void;
   onRemoveSport?: (sport: string) => void;
 }) => {
+  const skillLabel = (avg?: number) => {
+    if (avg == null) return "—";
+    if (avg < 0.5) return "Iniciante";
+    if (avg < 1.5) return "Intermediário";
+    if (avg < 2.5) return "Avançado";
+    return "Semiprofissional";
+  };
+
   return (
     <View className="mt-6 px-7">
       <Text className="text-[24px] font-medium text-black">Esportes</Text>
@@ -21,7 +31,7 @@ export const SportsSection = ({
           <Pressable key={s} onLongPress={() => onRemoveSport?.(s)}>
             <SportCard
               title={s}
-              level="Iniciante"
+              level={skillLabel(perSportLevel?.[s])}
               iconPath={require("../../assets/images/running-icon.png")}
             />
           </Pressable>

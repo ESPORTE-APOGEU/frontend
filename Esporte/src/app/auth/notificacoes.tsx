@@ -1,19 +1,19 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   SafeAreaView, View, Text, StatusBar, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Alert, FlatList,
+  ActivityIndicator, RefreshControl, Alert, FlatList, ImageBackground,
 } from "react-native";
 import { useAuth } from "@clerk/clerk-expo";
 
-import NotificationItem from "../../components/NotificationItem";
+import NotificationItem from "../../components/NotificationItem"; // <- versão figma (variant/strongText/etc.)
 import ParticipationRequest from "../../components/ParticipationRequest";
 import BottomNavigation from "../../components/FutterBar";
 import {
   getMyNotifications,
   acceptEventEntry,
   declineEventEntry,
-  markNotificationRead,      // <-- novo
-  archiveNotification,       // <-- opcional
+  markNotificationRead,
+  archiveNotification,
   NotificationDTO,
 } from "../../services/NotificationService";
 import { attachAuth } from "@/src/services/Api";
@@ -33,18 +33,18 @@ export default function Notificacoes() {
     if (!isLoaded || !isSignedIn) return;
     try {
       setLoading(true);
-      // só ativas (NEW/READ) → RESOLVED/ARCHIVED não voltam
       const data = await getMyNotifications("active");
       setNotifications(data);
 
-      // marca como lidas as que ainda estão NEW (fire-and-forget)
       const toRead = data.filter(n => n.status === "NEW");
       if (toRead.length) {
         Promise.allSettled(toRead.map(n => markNotificationRead(n.id))).catch(() => {});
       }
     } catch (err: any) {
-      Alert.alert("Erro",
-        err?.response?.data?.message || err?.message || "Falha ao carregar notificações");
+      Alert.alert(
+        "Erro",
+        err?.response?.data?.message || err?.message || "Falha ao carregar notificações"
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -62,11 +62,12 @@ export default function Notificacoes() {
     if (!entryId) return;
     try {
       await acceptEventEntry(entryId);
-      // otimismo: remove da lista; backend já marcou RESOLVED
       setNotifications(prev => prev.filter(n => n.id !== notificationId));
     } catch (err: any) {
-      Alert.alert("Erro",
-        err?.response?.data?.message || err?.message || "Não foi possível aceitar a solicitação");
+      Alert.alert(
+        "Erro",
+        err?.response?.data?.message || err?.message || "Não foi possível aceitar a solicitação"
+      );
     }
   };
 
@@ -76,12 +77,13 @@ export default function Notificacoes() {
       await declineEventEntry(entryId);
       setNotifications(prev => prev.filter(n => n.id !== notificationId));
     } catch (err: any) {
-      Alert.alert("Erro",
-        err?.response?.data?.message || err?.message || "Não foi possível recusar a solicitação");
+      Alert.alert(
+        "Erro",
+        err?.response?.data?.message || err?.message || "Não foi possível recusar a solicitação"
+      );
     }
   };
 
-  // (Opcional) ação de arquivar em notificações informativas
   const handleArchive = async (notificationId: number) => {
     try {
       await archiveNotification(notificationId);
@@ -91,6 +93,42 @@ export default function Notificacoes() {
         err?.response?.data?.message || err?.message || "Não foi possível arquivar");
     }
   };
+
+  // ---------- helper para extrair nome do evento e localização ----------
+// helper: extraia nome e local
+function extractParts(n: NotificationDTO) {
+  let eventName = "";
+
+  if (n.type === "entry_accepted" && n.description) {
+    const m = n.description.match(/evento:\s*(.+?)(\.|$)/i);
+    if (m?.[1]) eventName = m[1].trim();
+  }
+  if (!eventName) {
+    eventName =
+      (n.tagText && n.tagText.trim()) ||
+      (n.description?.match(/"([^"]+)"/)?.[1]) ||
+      "";
+  }
+
+  // LOCAL
+  let location = "";
+  if (n.type === "event_location") {
+    // 1) se um dia vier no tagText, usa
+    if (n.tagText && n.tagText.trim()) {
+      location = n.tagText.trim();
+    }
+    // 2) tenta extrair da descrição “... localizado em X”
+    if (!location && n.description) {
+      const m = n.description.match(/localizado\s+em\s+(.+)$/i);
+      if (m?.[1]) location = m[1].trim();
+    }
+  }
+
+  return { eventName, location };
+}
+
+
+  // ---------------------------------------------------------------------
 
   if (loading) {
     return (
@@ -106,11 +144,15 @@ export default function Notificacoes() {
 
       <View className="flex-row items-center justify-between p-5 mt-12">
         <Text className="text-4xl font-bold text-black">Notificações</Text>
-        <TouchableOpacity
-          className="w-10 h-10 bg-[#E0F0E0] rounded-full items-center justify-center"
-          onPress={fetchNotifications}
-        >
-          <Text className="text-gray-500 font-bold text-xl">↻</Text>
+
+        <TouchableOpacity className="w-10 h-10 items-center justify-center" onPress={fetchNotifications}>
+          <ImageBackground
+            source={require("../../assets/images/RETANGULO.png")}
+            style={{ width: 40, height: 38 }}
+            imageStyle={{ borderRadius: 12 }}
+          >
+            <View className="flex-1 items-center justify-center" />
+          </ImageBackground>
         </TouchableOpacity>
       </View>
 
@@ -118,8 +160,8 @@ export default function Notificacoes() {
         data={notifications}
         keyExtractor={(n) => String(n.id)}
         renderItem={({ item }) => {
+          // 4) Pedido para participar — mantém seu componente
           if (item.type === "entry_request") {
-            // Como só listamos active, aqui só virão NEW/READ
             return (
               <ParticipationRequest
                 userName={item.actorName || "Usuário"}
@@ -132,10 +174,73 @@ export default function Notificacoes() {
               />
             );
           }
+
+          // Demais tipos com o front do Figma
+          const { eventName, location } = extractParts(item);
+          if (item.type === "entry_accepted") {
+            const { eventName } = extractParts(item);
+            return (
+              <NotificationItem
+                variant="accepted"
+                title="Você foi aceito no evento!"
+                message={`Você foi aceito no `}
+                strongText={eventName || "seu evento"}
+                extraText="! Clique aqui para entrar no grupo de WhatsApp."
+                timestamp={item.timestamp}
+                iconName="whatsapp"
+                tagText={eventName || item.tagText || ""}
+                tagUrl={item.tagUrl}
+                onArchive={() => handleArchive(item.id)}
+              />
+            );
+          }
+
+          if (item.type === "event_start_reminder") {
+            return (
+              <NotificationItem
+                variant="reminder"
+                title="O evento já vai começar!"
+                message={
+                  eventName
+                    ? `${eventName} começa em 2 horas!`
+                    : (item.description || "")
+                }
+                extraText="Você está pronto?!"
+                timestamp={item.timestamp}
+                iconName="calendar"
+                onArchive={() => handleArchive(item.id)}
+              />
+            );
+          }
+
+          if (item.type === "event_location") {
+            const { eventName, location } = extractParts(item);
+            return (
+              <NotificationItem
+                variant="location"
+                title="Local do evento"
+                message={
+                  eventName
+                    ? `${eventName} está localizado em`
+                    : (item.description || "")
+                }
+                strongText={location}   // agora preenche
+                timestamp={item.timestamp}
+                iconName="info"
+                onArchive={() => handleArchive(item.id)}
+              />
+            );
+          }
+
+          // fallback info simples
           return (
             <NotificationItem
-              notification={item}
-              onArchive={() => handleArchive(item.id)} // opcional
+              variant="info"
+              title={item.title || "Notificação"}
+              message={item.description || ""}
+              timestamp={item.timestamp}
+              iconName={item.iconName === "calendar" ? "calendar" : "info"}
+              onArchive={() => handleArchive(item.id)}
             />
           );
         }}
