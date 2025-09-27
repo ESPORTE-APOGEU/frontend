@@ -16,13 +16,14 @@ export default function SearchBar({
   onSearch
 }: SearchBarProps) {
   return (
-    <View className="flex-row items-center bg-white rounded-3xl px-6 py-2"
+    <View className="flex-row items-center rounded-3xl px-6 py-2"
       style={{
         shadowOffset: { width: 0, height: 1 },
         borderRadius: 100,
         elevation: 2,
         borderWidth: 1,
-        borderColor: '#7A7676'
+        borderColor: '#7A7676',
+        backgroundColor: '#F7FFED'
       }}
     >
       {/* Ícone de pesquisa */}
