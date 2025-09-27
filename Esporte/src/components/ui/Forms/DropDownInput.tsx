@@ -38,16 +38,13 @@ const DropDownInput: React.FC<Props> = ({
   const awaitOptionsRef = React.useRef(awaitOptions);
   React.useEffect(() => {
     if (awaitOptions && !hasLoaded && !isLoading) {
-      console.log(`DropDownInput (${label}): Carregando opções...`);
       setIsLoading(true);
       awaitOptions()
         .then((data) => {
-          console.log(`DropDownInput (${label}): Opções carregadas:`, data.length, "itens");
           setOptionsList(data);
           setHasLoaded(true);
         })
         .catch((error) => {
-          console.error(`DropDownInput (${label}): Erro ao carregar opções:`, error);
         })
         .finally(() => {
           setIsLoading(false);

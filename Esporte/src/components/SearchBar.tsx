@@ -1,39 +1,55 @@
 import React from 'react';
-import { View, TextInput, TouchableOpacity, Image } from 'react-native';
+import { View, TextInput, TouchableOpacity, Image, ViewStyle, TextStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 interface SearchBarProps {
   placeholder?: string;
   onChangeText?: (text: string) => void;
   value?: string;
+  onSearch?: (text: string) => void;
+  containerStyle?: ViewStyle;  // opcional: caso queira ajustar fora
+  inputStyle?: TextStyle;      // opcional
 }
 
-export default function SearchBar({ 
-  placeholder = "What are you looking for?", 
-  onChangeText, 
-  value 
+export default function SearchBar({
+  placeholder = "Quem você procura",
+  onChangeText,
+  value,
+  onSearch,
+  containerStyle,
+  inputStyle,
 }: SearchBarProps) {
   return (
-    <View className="flex-row items-center bg-white rounded-3xl px-6 py-2"
+
+    <View className="flex-row items-center rounded-3xl px-6 py-2"
       style={{
         shadowOffset: { width: 0, height: 1 },
         borderRadius: 100,
         elevation: 2,
         borderWidth: 1,
-        borderColor: '#7A7676'
+        borderColor: '#7A7676',
+        backgroundColor: '#F7FFED'
       }}
     >
-      {/* Ícone de pesquisa */}
-      <Ionicons name="search" size={18} color="#9CA3AF" />
-      
-      {/* Campo de input */}
+      <Ionicons name="search" size={16} color="#7A7676" />
+
       <TextInput
-        className="flex-1 text-gray-700 ml-3"
         placeholder={placeholder}
-        placeholderTextColor="#9CA3AF"
+        placeholderTextColor="#7A7676"
         value={value}
         onChangeText={onChangeText}
-        style={{ fontSize: 14 }}
+        onSubmitEditing={(e) => onSearch?.(e.nativeEvent.text)}
+        style={[
+          {
+            flex: 1,
+            marginLeft: 8,
+            fontSize: 12,            // <- 12px como no Figma
+            color: '#000000',
+            paddingVertical: 0,      // evita “crescer” a altura
+            backgroundColor: 'transparent',
+          },
+          inputStyle,
+        ]}
       />
     </View>
   );

@@ -46,16 +46,13 @@ export default function AutoCompleteTags({
   React.useEffect(() => {
     // Só carrega se tem awaitOptions e ainda não carregou
     if (awaitOptions && !hasLoaded && !isLoading) {
-      console.log(`AutoComplete (${label}): Carregando opções...`);
       setIsLoading(true);
       awaitOptions()
         .then((data) => {
-          console.log(`AutoComplete (${label}): Opções carregadas:`, data.length, "itens");
           setOptionsList(data);
           setHasLoaded(true);
         })
         .catch((error) => {
-          console.error(`AutoComplete (${label}): Erro ao carregar opções:`, error);
         })
         .finally(() => {
           setIsLoading(false);
