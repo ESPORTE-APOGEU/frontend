@@ -22,11 +22,15 @@ import { useProfile } from "@/hooks/useProfile";
 import { attachAuth } from "@/src/services/Api";
 import { Sport } from "@/src/services/UserService";
 
+// 👉 imports da versão “tela-perfil”
 import { useMyEvents } from "@/hooks/useMyEvents";
 import { Activity } from "@/src/components/profile/ActivityItem";
 import { ActivitiesSection } from "@/src/components/profile/ActivitiesSection";
 import { useRouter } from "expo-router";
+import MutualFriends from "@/src/components/profile/MutualFriends";
+import { images as friendImages } from "@/src/components/profile/FriendCard";
 
+// 👉 constante que estava no outro branch (dev-with-form-fixes)
 const BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 export default function ProfileScreen() {
@@ -84,7 +88,7 @@ export default function ProfileScreen() {
     })();
   }, [userId]);
 
-  // NOVO: util simples para "há X dias/semanas"
+  // util simples para "há X dias/semanas"
   function toTimeAgo(isoDate: string) {
     const d = new Date(isoDate);
     const now = new Date();
@@ -96,8 +100,16 @@ export default function ProfileScreen() {
     return weeks === 1 ? "Há 1 semana" : `Há ${weeks} semanas`;
   }
 
+  const mutualAvatarsKeys: (keyof typeof friendImages)[] = ["user1", "user2", "user3"];
+  const mutualAvatars = mutualAvatarsKeys.map((k) => friendImages[k]);
+  const mutualCount = 7;
+
+  const onPressMutual = () => {
+    console.log("ver amigos em comum");
+  };
+
   const handleAddSport = async (sport: string) => {
-    const current = data?.sports ?? [];
+    const current = (data?.sports ?? []);
     const sportsAsStrings = current.map((s: Sport | string) =>
       typeof s === "string" ? s : s.name
     );
@@ -110,7 +122,7 @@ export default function ProfileScreen() {
   };
 
   const handleRemoveSport = async (sport: string) => {
-    const current = data?.sports ?? [];
+    const current = (data?.sports ?? []);
     try {
       const sportsAsStrings = current.map((s: Sport | string) =>
         typeof s === "string" ? s : s.name
@@ -161,7 +173,7 @@ export default function ProfileScreen() {
                   : require("../../assets/images/default_card.png"),
               price: ev.price ? String(ev.price) : "Free",
             }))}
-            onPressEvent={(ev) => openEvent(ev.id)}
+            onPressEvent={(ev) => openEvent(ev.id)} // navega para a tela do evento
             emptyText="Você ainda não se inscreveu em eventos"
           />
         );
@@ -262,6 +274,14 @@ export default function ProfileScreen() {
             }
             cityText={data?.city ? `${data.city}` : "Cidade não informada"}
             jobText={"Designer"} // troque quando vier do backend
+          />
+
+          <MutualFriends
+            avatars={mutualAvatars.slice(0, 3)}
+            primaryNames={["João Hélio", "Fagner Martins"]}
+            othersCount={Math.max(0, mutualCount - 2)}
+            onPressAvatars={onPressMutual}
+            onPressText={onPressMutual}
           />
 
           <View className="mb-4">
