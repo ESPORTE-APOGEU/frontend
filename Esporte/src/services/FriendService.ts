@@ -10,3 +10,13 @@ export async function getUserFriends(userId: string): Promise<FriendLite[]> {
   console.log("amigos: " +  data);
   return data;
 }
+
+export type MutualFriendsDTO = {
+  total: number;
+  users: { id: string; name?: string | null; photo?: string | null }[];
+};
+
+export async function getMutualFriends(otherUserId: string): Promise<MutualFriendsDTO> {
+  const { data } = await api.get(`/friendships/mutual/${encodeURIComponent(otherUserId)}`);
+  return data;
+}

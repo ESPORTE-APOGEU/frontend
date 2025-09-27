@@ -276,14 +276,6 @@ export default function ProfileScreen() {
             jobText={"Designer"} // troque quando vier do backend
           />
 
-          <MutualFriends
-            avatars={mutualAvatars.slice(0, 3)}
-            primaryNames={["João Hélio", "Fagner Martins"]}
-            othersCount={Math.max(0, mutualCount - 2)}
-            onPressAvatars={onPressMutual}
-            onPressText={onPressMutual}
-          />
-
           <View className="mb-4">
             <SportsSection
               sports={

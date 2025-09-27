@@ -18,7 +18,8 @@ import { RegisteredEvents } from "@/src/components/profile/RegisteredEvents";
 import { ActivitiesSection } from "@/src/components/profile/ActivitiesSection";
 import { Activity } from "@/src/components/profile/ActivityItem";
 import { Friends } from "@/src/components/profile/Friends";
-
+import MutualFriends from "@/src/components/profile/MutualFriends";
+import { getMutualFriends, MutualFriendsDTO } from "@/src/services/FriendService";
 import { useUserEvents } from "@/hooks/useUserEvents";
 
 export default function OtherProfileScreen() {
@@ -35,12 +36,34 @@ export default function OtherProfileScreen() {
   const [friends, setFriends] = useState<FriendLite[]>([]);
   const [friendsLoading, setFriendsLoading] = useState(true);
 
+  const [mutual, setMutual] = useState<MutualFriendsDTO | null>(null);
+
   // injeta JWT
   useEffect(() => {
     attachAuth(() => getToken({ template: "backend", skipCache: true }));
   }, [getToken]);
 
-  // carrega perfil
+useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const m = await getMutualFriends(String(id));
+        console.log("mutual:" + m)
+        if (mounted) setMutual(m);
+      } catch (e) {
+        console.warn("Erro ao buscar amigos em comum:", (e as any)?.message);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [id]);
+
+  // helpers para montar o componente do Figma
+  const mutualAvatars = (mutual?.users ?? [])
+    .slice(0, 3)
+    .map(u => u.photo ? { uri: u.photo } : require("../../../assets/images/Criador.png"));
+  const names = (mutual?.users ?? []).map(u => u.name ?? "—");
+  const primaryNames = names.slice(0, 2);               // “João Hélio , Fagner Martins”
+  const othersCount = Math.max(0, (mutual?.total ?? 0) - 2);
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -193,7 +216,15 @@ export default function OtherProfileScreen() {
             cityText={data?.city ?? "Cidade não informada"}
             jobText={"—"}
           />
-
+          {!!mutual && mutual.total > 0 && (
+          <MutualFriends
+            avatars={mutualAvatars}
+            primaryNames={primaryNames}
+            othersCount={othersCount}
+            onPressAvatars={() => {/* abrir lista completa se quiser */}}
+            onPressText={() => {/* idem */}}
+          />
+          )}
           <View className="mb-4">
             <SportsSection
               sports={(data?.sports ?? []).map((s: any) => (typeof s === "string" ? s : s.name))}
