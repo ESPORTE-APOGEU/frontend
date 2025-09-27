@@ -160,6 +160,7 @@ export default function Home() {
     if (f.sports && f.sports.length > 0) count += 1;
     if (f.levels && f.levels.length > 0) count += 1;
     if (f.date) count += 1;
+    if (f.gender) count += 1;
     if (f.startTime && f.endTime) count += 1;
     if (f.maxDistanceKm) count += 1;
     return count;
@@ -256,7 +257,7 @@ const handleEventPress = (eventId: number) => {
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Header */}
-      <View className="mt-5 mb-2 flex-row items-center justify-between px-4 bg-[#F7FFED]">
+      <View className="mt-16 mb-2 flex-row items-center justify-between px-4 bg-[#F7FFED]">
         <View className="flex-row items-center flex-1">
 
           <View className="flex-1">
