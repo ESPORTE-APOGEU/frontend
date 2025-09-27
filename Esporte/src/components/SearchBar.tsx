@@ -20,20 +20,16 @@ export default function SearchBar({
   inputStyle,
 }: SearchBarProps) {
   return (
-    <View
-      style={[
-        {
-          height: 41,
-          borderWidth: 0.8,
-          borderColor: '#7A7676',
-          borderRadius: 101,
-          backgroundColor: 'transparent',   // <- sem fundo branco
-          paddingHorizontal: 16,
-          alignItems: 'center',
-          flexDirection: 'row',
-        },
-        containerStyle,
-      ]}
+
+    <View className="flex-row items-center rounded-3xl px-6 py-2"
+      style={{
+        shadowOffset: { width: 0, height: 1 },
+        borderRadius: 100,
+        elevation: 2,
+        borderWidth: 1,
+        borderColor: '#7A7676',
+        backgroundColor: '#F7FFED'
+      }}
     >
       <Ionicons name="search" size={16} color="#7A7676" />
 
