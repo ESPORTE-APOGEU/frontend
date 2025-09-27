@@ -18,7 +18,7 @@ export default function StepForm2({ onNext, form, setForm }: StepsSignupProps) {
 
   // Descobre se a conta já tem senha no Clerk
   const hasPassword =
-    ((user as any)?.passwordEnabled ?? (user as any)?.hasPassword) ?? false;
+    (user as any)?.passwordEnabled ?? (user as any)?.hasPassword ?? false;
 
   // Se já está logado (SSO) E já tem senha → pula este passo
   React.useEffect(() => {
@@ -33,7 +33,10 @@ export default function StepForm2({ onNext, form, setForm }: StepsSignupProps) {
       return false;
     }
     if (form.password.length < 8) {
-      Alert.alert("Senha fraca", "A senha precisa ter pelo menos 8 caracteres.");
+      Alert.alert(
+        "Senha fraca",
+        "A senha precisa ter pelo menos 8 caracteres."
+      );
       return false;
     }
     if (form.password !== form.confirmPassword) {
@@ -71,13 +74,12 @@ export default function StepForm2({ onNext, form, setForm }: StepsSignupProps) {
     }
   };
 
-  // Se vamos pular automaticamente, não renderiza nada
-  if (isLoaded && isSignedIn && hasPassword) {
-    return <View />;
-  }
+  // if (isLoaded && isSignedIn && hasPassword) {
+  //   return <View className="flex-1" />;
+  // }
 
   return (
-    <View>
+    <View className="flex-1 mt-28">
       <TextInput
         password
         label="Senha"
@@ -92,7 +94,9 @@ export default function StepForm2({ onNext, form, setForm }: StepsSignupProps) {
         value={form.confirmPassword}
         onChangeText={(text) => setForm({ ...form, confirmPassword: text })}
       />
-      <LargeButton onPress={handleNext} title="Next" />
+      <View className="mt-8">
+        <LargeButton onPress={handleNext} title="Próximo" />
+      </View>
     </View>
   );
 }

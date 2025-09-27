@@ -11,7 +11,7 @@ export default function PublicLayout() {
     if (!isLoaded) return;
 
     if (!isSignedIn) {
-      console.log("nao esta logado")
+      console.log("nao esta logado");
       setDest("/auth/sign-in");
       return;
     }
@@ -59,7 +59,7 @@ export default function PublicLayout() {
       }
     })();
   }, [isLoaded, isSignedIn]);
-console.log(dest)
+  console.log(dest);
   if (!isLoaded || (isSignedIn && !dest)) return null;
   if (dest) return <Redirect href={dest} />;
   return <Stack />;

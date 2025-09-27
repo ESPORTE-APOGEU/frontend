@@ -1,6 +1,6 @@
-import React from 'react';
-import { View, Text , ActivityIndicator} from 'react-native';
-import { Picker } from '@react-native-picker/picker';
+import React from "react";
+import { View, Text, ActivityIndicator } from "react-native";
+import DropDownPicker, { ItemType } from "react-native-dropdown-picker";
 
 interface Option {
   label: string;
@@ -9,15 +9,20 @@ interface Option {
 
 interface Props {
   label: string;
-  selectedValue: string;
+  selectedValue: string; // usado no modo single
   onValueChange: (itemValue: string, itemIndex: number) => void;
   options?: Option[];
   awaitOptions?: () => Promise<Option[]>;
   placeholder?: string;
   className?: string;
-  mode?: 'dialog' | 'dropdown'; 
+
+  // Não é usado por DropDownPicker; mantido por compat com sua API antiga
+  mode?: "dialog" | "dropdown";
+
+  // Multi
   multiSelect?: boolean;
-  selectedItems?: string[]; // Para seleção múltipla
+  selectedItems?: string[]; // valores no multi
+  onChangeItems?: (values: string[]) => void; // opcional: controle externo do multi
 }
 
 const DropDownInput: React.FC<Props> = ({
@@ -27,97 +32,115 @@ const DropDownInput: React.FC<Props> = ({
   options,
   awaitOptions,
   placeholder,
-  mode = 'dialog',
   multiSelect = false,
   selectedItems = [],
+  onChangeItems,
 }) => {
-
-  const [isLoading, setIsLoading] = React.useState<boolean>(false);
-  const [hasLoaded, setHasLoaded] = React.useState<boolean>(false);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [hasLoaded, setHasLoaded] = React.useState(false);
   const [optionsList, setOptionsList] = React.useState<Option[]>(options || []);
-  const awaitOptionsRef = React.useRef(awaitOptions);
+
+  // Estado exigido pela lib
+  const [open, setOpen] = React.useState(false);
+  const [items, setItems] = React.useState<ItemType<string>[]>([]);
+
+  // Valor controlado (string no single, string[] no multi)
+  const value = multiSelect ? selectedItems : selectedValue;
+
+  // Carrega opções (assíncrono opcional)
   React.useEffect(() => {
     if (awaitOptions && !hasLoaded && !isLoading) {
       setIsLoading(true);
       awaitOptions()
         .then((data) => {
-          setOptionsList(data);
+          setOptionsList(data || []);
           setHasLoaded(true);
         })
-        .catch((error) => {
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
+        .catch(() => {})
+        .finally(() => setIsLoading(false));
     }
-  }, [awaitOptions, hasLoaded, isLoading, label]);
-  // No modo multiSelect, sempre força o Picker para o placeholder
-  const [pickerKey, setPickerKey] = React.useState<number>(0);
-  const pickerValue = multiSelect ? '' : selectedValue;
+  }, [awaitOptions, hasLoaded, isLoading]);
 
-  const handleValueChange = (itemValue: string, itemIndex: number) => {
-    if (multiSelect) {
-      if (itemValue !== '') {
-        onValueChange(itemValue, itemIndex);
-        setPickerKey(prev => prev + 1); // força re-render
+  // Sincroniza items da lib quando optionsList muda
+  React.useEffect(() => {
+    setItems(optionsList.map((o) => ({ label: o.label, value: o.value })));
+  }, [optionsList]);
+
+  // setValue exigido pela lib — adapta pra sua API
+  const setValue = React.useCallback(
+    (updater: any) => {
+      if (multiSelect) {
+        // updater recebe (prev: string[]) => string[]   ou   string[]
+        const nextArr: string[] =
+          typeof updater === "function" ? updater(selectedItems) : updater;
+        // callback externo opcional para multi-controlado
+        onChangeItems?.(nextArr);
+
+        // fallback: se só tiver onValueChange (API antiga), dispare com o último item quando presente
+        if (!onChangeItems) {
+          const last = nextArr[nextArr.length - 1];
+          const idx = optionsList.findIndex((o) => o.value === last);
+          if (last != null) onValueChange(last, idx >= 0 ? idx : -1);
+        }
+      } else {
+        // updater recebe (prev: string) => string   ou   string
+        const nextVal: string =
+          typeof updater === "function" ? updater(selectedValue) : updater;
+        const idx = optionsList.findIndex((o) => o.value === nextVal);
+        onValueChange(nextVal, idx >= 0 ? idx : -1);
       }
-    } else {
-      onValueChange(itemValue, itemIndex);
-    }
-  };
+    },
+    [
+      multiSelect,
+      selectedItems,
+      selectedValue,
+      onValueChange,
+      onChangeItems,
+      optionsList,
+    ]
+  );
 
   return (
-    <View className="mb-4 w-full items-center font-[Poppins-Regular]">
+    <View className="mb-4 w-full items-center">
       <View className="w-[80%]">
-        <Text className="font-[Poppins-Bold] mb-0.5 font-bold" accessibilityLabel={label}>
+        <Text
+          className="text-[16px] leading-6 text-[rgba(41,45,50,0.88)] mb-1"
+          accessibilityLabel={label}
+        >
           {label}
         </Text>
+
         {isLoading ? (
-          <ActivityIndicator size="small" color="#0000ff" />
+          <ActivityIndicator size="small" color="#358838" />
         ) : (
-          <View className="border-b  border-green-700 relative"
+          <DropDownPicker
+            open={open}
+            setOpen={setOpen}
+            // valor controlado (string | string[])
+            value={value as any}
+            setValue={setValue}
+            items={items}
+            setItems={setItems}
+            multiple={multiSelect}
+            placeholder={
+              placeholder ||
+              (multiSelect ? "Selecione um ou mais" : "Selecione")
+            }
+            // Estilo para bater com o seu Figma (42px, bg translúcido, borda inferior verde, radius 8)
             style={{
-              shadowColor: '#000',
-              shadowOffset: { width: 4, height: 6 },
-              shadowOpacity: 0.4,
-              shadowRadius: 8,
-              elevation: 12,
-            }}>
-            <Picker
-              key={multiSelect ? pickerKey : 'single'}
-              selectedValue={pickerValue}
-              onValueChange={handleValueChange}
-              mode={mode}
-              dropdownIconColor="#047857"
-              style={{
-              padding:0,
-              margin: 0,
-              boxSizing: 'border-box',
-              backgroundColor: 'rgba(244, 244, 245, 0.95)',
-              borderRadius: 12,
-              //height: 40,
-              fontSize: 14, //Tamanho da fonte não funciona
-              lineHeight: 20,
-              }}
-            >
-              <Picker.Item
-              label={placeholder || 'Selecione'}
-              value=""
-              enabled={false}
-              color="#6B7280" // cinza-500'
-              />
-              {(multiSelect
-              ? optionsList.filter(opt => !selectedItems.includes(opt.value))
-              : optionsList
-              ).map((option) => (
-              <Picker.Item
-                key={option.value}
-                label={option.label}
-                value={option.value}
-              />
-              ))}
-            </Picker>
-          </View>
+              height: 42,
+              backgroundColor: "rgba(253,255,249,0.41)",
+              borderWidth: 0,
+              borderBottomWidth: 1,
+              borderColor: "#358838",
+              borderRadius: 8,
+            }}
+            dropDownContainerStyle={{
+              borderColor: "#e5e7eb",
+            }}
+            listMode="SCROLLVIEW"
+            zIndex={1000}
+          />
         )}
       </View>
     </View>

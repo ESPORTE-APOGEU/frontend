@@ -23,10 +23,12 @@ import { attachAuth } from "@/src/services/Api";
 import { Sport } from "@/src/services/UserService";
 
 // ↓ Novos imports vindos da sua versão nova
-import { useMyEvents } from "@/hooks/useMyEvents"
+import { useMyEvents } from "@/hooks/useMyEvents";
 import { Activity } from "@/src/components/profile/ActivityItem";
 import { ActivitiesSection } from "@/src/components/profile/ActivitiesSection";
 import { useRouter, Href } from "expo-router";
+import MutualFriends from "@/src/components/profile/MutualFriends";
+import { images as friendImages } from "@/src/components/profile/FriendCard";
 
 export default function ProfileScreen() {
   const router = useRouter(); // 👈 aqui
@@ -66,6 +68,18 @@ export default function ProfileScreen() {
     return weeks === 1 ? "Há 1 semana" : `Há ${weeks} semanas`;
   }
 
+  const mutualAvatarsKeys: (keyof typeof friendImages)[] = [
+    "user1",
+    "user2",
+    "user3",
+  ];
+  const mutualAvatars = mutualAvatarsKeys.map((k) => friendImages[k]); // ✅ vira ImageSourcePropType[]
+  const mutualCount = 7;
+
+  const onPressMutual = () => {
+    console.log("ver amigos em comum");
+  };
+
   const handleAddSport = async (sport: string) => {
     const current = data?.sports ?? [];
     const sportsAsStrings = current.map((s: Sport | string) =>
@@ -90,13 +104,12 @@ export default function ProfileScreen() {
       Alert.alert("Erro", e?.message ?? "Não foi possível remover o esporte");
     }
   };
-const openEvent = (eventId: number) => {
-  router.push({
-    pathname: "/auth/event/[id]",
-    params: { id: String(eventId) },
-  });
-};
-
+  const openEvent = (eventId: number) => {
+    router.push({
+      pathname: "/auth/event/[id]",
+      params: { id: String(eventId) },
+    });
+  };
 
   // NOVO: mapeia “participated” para ActivitiesSection
   const participatedActivities: Activity[] = (participated ?? []).map((ev) => ({
@@ -126,13 +139,13 @@ const openEvent = (eventId: number) => {
               location: ev.location,
               date: new Date(ev.date).toDateString(),
               participants: 0,
-              image: ev.coverImageUrl && ev.coverImageUrl.trim().length > 0
-                ? { uri: ev.coverImageUrl }
-                : require("../../assets/images/default_card.png"),
+              image:
+                ev.coverImageUrl && ev.coverImageUrl.trim().length > 0
+                  ? { uri: ev.coverImageUrl }
+                  : require("../../assets/images/default_card.png"),
               price: ev.price ? String(ev.price) : "Free",
             }))}
-
-            onPressEvent={(ev) => openEvent(ev.id)}   // ← navega
+            onPressEvent={(ev) => openEvent(ev.id)} // ← navega
             emptyText="Você ainda não se inscreveu em eventos"
           />
         );
@@ -167,8 +180,7 @@ const openEvent = (eventId: number) => {
                 mutualCount: 3,
               },
             ]}
-             emptyText="Você ainda não adicionou amigos"
-
+            emptyText="Você ainda não adicionou amigos"
           />
         );
 
@@ -225,10 +237,20 @@ const openEvent = (eventId: number) => {
 
           <ProfileInfo
             ageText={
-              data?.birthday ? calcAgeText(data.birthday) : "Idade não informada"
+              data?.birthday
+                ? calcAgeText(data.birthday)
+                : "Idade não informada"
             }
             cityText={data?.city ? `${data.city}` : "Cidade não informada"}
             jobText={"Designer"} // troque quando vier do backend
+          />
+
+          <MutualFriends
+            avatars={mutualAvatars.slice(0, 3)}
+            primaryNames={["João Hélio", "Fagner Martins"]}
+            othersCount={Math.max(0, mutualCount - 2)}
+            onPressAvatars={onPressMutual}
+            onPressText={onPressMutual}
           />
 
           <View className="mb-4">

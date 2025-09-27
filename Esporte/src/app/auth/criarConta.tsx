@@ -1,9 +1,19 @@
 import React from "react";
-import { View, Text, Pressable, Image, BackHandler } from "react-native";
+import {
+  View,
+  Text,
+  Pressable,
+  Image,
+  BackHandler,
+  SafeAreaView,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
 import { useFocusEffect } from "expo-router";
 
 import StepsSignup from "@/src/components/Auth/StepsController";
 import useSignup from "@/hooks/Singup";
+import SetaVoltar from "@/src/components/icons/seta-voltar";
 
 export default function CriarContaScreen() {
   const [step, setStep] = React.useState(1);
@@ -33,22 +43,38 @@ export default function CriarContaScreen() {
     }, [step])
   );
   return (
-    <View className="flex-1">
-      {/*<HeaderCreateAccount />*/}
-      <View className="pb-10 h-27 bg-[#07D362] rounded-bl-[20%] shadow-black shadow-2xl">
-        <Pressable className="p-8 ml-4 mt-8" onPress={handleBack}>
-          <Image source={require("../../assets/images/seta-voltar.png")} />
-        </Pressable>
-        <Text className="text-5xl text-white m-8 font-[Poppins-Bold] font-bold">
-          Criar {"\n"}Conta.
-        </Text>
-      </View>
-      <StepsSignup
-        step={step}
-        onNext={() => handleNext()}
-        form={form}
-        setForm={setForm}
-      />
-    </View>
+    <SafeAreaView className="flex-1 bg-white">
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.select({ ios: "padding", android: undefined })}
+        keyboardVerticalOffset={Platform.select({ ios: 0, android: 0 })}
+      >
+        <View className="flex-1">
+          <View className="h-[220px] pb-6 bg-[#43A047] rounded-bl-[60px] shadow-black shadow-2xl">
+            <Pressable
+              className="p-4 ml-2 mt-2"
+              onPress={handleBack}
+              hitSlop={12}
+            >
+              <SetaVoltar />
+            </Pressable>
+
+            <Text className="text-4xl text-white font-poppins mt-3 ml-12 leading-tight">
+              Criar
+            </Text>
+            <Text className="text-4xl text-white font-poppins mt-3 ml-12 leading-tight">
+              Conta.
+            </Text>
+          </View>
+
+          <StepsSignup
+            step={step}
+            onNext={handleNext}
+            form={form}
+            setForm={setForm}
+          />
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
