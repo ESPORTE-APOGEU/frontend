@@ -9,6 +9,7 @@ import ProfileIcon from '@/src/components/icons/profile';
 import SecurityIcon from '@/src/components/icons/security';
 import HelpIcon from '@/src/components/icons/help';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { useAuth } from '@clerk/clerk-expo';
 
 const BGCOLOR = '#F7FFED';
 const GREEN = '#43A047';
@@ -16,6 +17,25 @@ const ROW_BG = 'rgba(253, 255, 249, 0.75)';
 
 export default function SettingsMain() {
   const [notificationsPaused, setNotificationsPaused] = React.useState(false);
+  const { signOut } = useAuth();
+
+  const confirmSignOut = () => {
+    Alert.alert('Sair', 'Você tem certeza que deseja sair?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Sair',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await signOut();
+          } finally {
+            router.replace('/auth/sign-in');
+          }
+        },
+      },
+    ]);
+  };
+
 
   return (
     <View className="flex-1" style={{ backgroundColor: BGCOLOR }}>
@@ -90,12 +110,7 @@ export default function SettingsMain() {
 
         {/* Botão Sair da conta */}
         <Pressable
-          onPress={() =>
-            Alert.alert('Sair', 'Você tem certeza que deseja sair?', [
-              { text: 'Cancelar', style: 'cancel' },
-              { text: 'Sair', onPress: () => console.log('Usuário saiu') },
-            ])
-          }
+          onPress={confirmSignOut}
           style={{
             width: '86%',
             alignSelf: 'center',

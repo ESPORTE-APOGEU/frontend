@@ -17,6 +17,8 @@ import { useRouter, Href } from 'expo-router';
 
 
 import SearchBar from '../../components/SearchBar';
+import NotifyIcon from '../../assets/icons/notify.svg';
+import FilterIcon from '../../assets/icons/filter.svg';
 import EventCard from '../../components/EventCard';
 import BottomNavigation from '../../components/FutterBar';
 import FilterModal from '../../components/FilterModal';
@@ -37,7 +39,8 @@ export interface EventResponse {
   price: string | number;
   description: string;
   coverImageUrl?: string | null;
-
+  maxParticipants?: number | null;
+  participantCount?: number | null;
 }
 
 const DEFAULT_IMAGE = require('../../assets/images/default_card.png');
@@ -114,6 +117,7 @@ export default function Home() {
   }, [isLoaded, isSignedIn]);
 
   const checkPendingAvaliation = async (token?: string | null) => {
+    console.log(token)
     try {
       if (!token || !BASE_URL) return;
       const res = await fetch(`${BASE_URL}/api/v1/avaliations/pending`, {
@@ -157,6 +161,7 @@ export default function Home() {
     if (f.sports && f.sports.length > 0) count += 1;
     if (f.levels && f.levels.length > 0) count += 1;
     if (f.date) count += 1;
+    if (f.gender) count += 1;
     if (f.startTime && f.endTime) count += 1;
     if (f.maxDistanceKm) count += 1;
     return count;
@@ -249,42 +254,42 @@ const handleEventPress = (eventId: number) => {
 };
 
   return (
-    <SafeAreaView className="flex-1 bg-[#F8F9FA]">
+    <SafeAreaView className="flex-1 bg-[#F7FFED]">
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 bg-[#F8F9FA] mt-14">
+      <View className="mt-16 mb-2 flex-row items-center justify-between px-4 bg-[#F7FFED]">
         <View className="flex-row items-center flex-1">
 
           <View className="flex-1">
             <SearchBar
-              placeholder="What are you looking for?"
+              placeholder="Qual evento está procurando?"
               value={searchText}
               onChangeText={handleSearchChange}
             />
           </View>
         </View>
         <TouchableOpacity className="ml-2.5" onPress={() => handleNotificationPress()} >
-          <Ionicons name="notifications-outline" size={26} color="#000000" />
+          <NotifyIcon width={32} height={32} style={{ marginLeft: 4 }} />
         </TouchableOpacity>
       </View>
 
       {/* Título + Filtro */}
       <View className="flex-row items-center justify-between mt-2 mb-2 px-5">
-        <Text className="text-[22px] font-bold">Sports Events</Text>
+        <Text className="text-[22px] font-bold">Eventos</Text>
         <TouchableOpacity
-          className="bg-[#00D36C] rounded-full px-4 py-1.5 flex-row items-center"
+          className="bg-[#43A047] rounded-full px-4 py-1.5 flex-row items-center"
           onPress={() => setFilterModalVisible(true)}
         >
-          <Text className="text-white font-bold mr-1.5">Filter</Text>
+          <Text className="text-white font-bold mr-1.5">Filtrar</Text>
           {activeFiltersCount > 0 ? (
             <View className="w-[22px] h-[22px] rounded-full bg-white items-center justify-center">
-              <Text className="text-[#00D36C] font-bold text-[12px]">
+              <Text className="text-[#43A047] font-bold text-[12px]">
                 {activeFiltersCount}
               </Text>
             </View>
           ) : (
-            <Ionicons name="filter" size={18} color="#fff" />
+            <FilterIcon width={12} height={12} style={{ marginLeft: 4 }} />
           )}
         </TouchableOpacity>
       </View>
@@ -315,7 +320,8 @@ const handleEventPress = (eventId: number) => {
               eventName={ev.name}
               location={ev.location}
               date={ev.date}
-              participants={0}
+              participants={ev.participantCount ?? 1}          // 👈 usa o total (aceitos + org)
+              maxParticipants={ev.maxParticipants ?? undefined}
               image={
                 ev.coverImageUrl
                   ? { uri: ev.coverImageUrl } // usa a foto do Cloudinary

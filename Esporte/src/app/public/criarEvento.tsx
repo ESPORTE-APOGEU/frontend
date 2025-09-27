@@ -17,7 +17,7 @@ import { useRouter } from "expo-router";
 
 const sportOptions = ["Futebol","Vôlei","Basquete","Yoga","Corrida","Tênis","Pedal","Beach Tennis","Hot Yoga","Futevôlei","Vôlei de praia","Pilates","Paddle","Pickleball"];
 const levelOptions = ["Iniciante", "Intermediario", "Avançado", "Semi-profissional"];
-const genderOptions = ["Masculino", "Feminino", "Mix"];
+const genderOptions = ["Masculino", "Feminino", "Misto"];
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
