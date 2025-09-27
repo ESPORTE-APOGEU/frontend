@@ -22,16 +22,19 @@ import { useProfile } from "@/hooks/useProfile";
 import { attachAuth } from "@/src/services/Api";
 import { Sport } from "@/src/services/UserService";
 
-// ↓ Novos imports vindos da sua versão nova
+// 👉 imports da versão “tela-perfil”
 import { useMyEvents } from "@/hooks/useMyEvents";
 import { Activity } from "@/src/components/profile/ActivityItem";
 import { ActivitiesSection } from "@/src/components/profile/ActivitiesSection";
-import { useRouter, Href } from "expo-router";
+import { useRouter } from "expo-router";
 import MutualFriends from "@/src/components/profile/MutualFriends";
 import { images as friendImages } from "@/src/components/profile/FriendCard";
 
+// 👉 constante que estava no outro branch (dev-with-form-fixes)
+const BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+
 export default function ProfileScreen() {
-  const router = useRouter(); // 👈 aqui
+  const router = useRouter();
 
   const [tab, setTab] = useState<ActionTabKey>("participados");
 
@@ -40,7 +43,7 @@ export default function ProfileScreen() {
 
   const userId = user?.id as string | undefined;
 
-  // MANTIDO: injeta JWT do Clerk com template 'backend'
+  // Injeta JWT do Clerk com template 'backend'
   useEffect(() => {
     attachAuth(() => getToken({ template: "backend", skipCache: true }));
   }, [getToken]);
@@ -48,7 +51,7 @@ export default function ProfileScreen() {
   // Dados do perfil
   const { data, loading, err, saveSports } = useProfile(userId);
 
-  // NOVO: eventos do usuário (inscritos/participados)
+  // Eventos do usuário (inscritos/participados)
   const {
     registered = [],
     participated = [],
@@ -56,7 +59,36 @@ export default function ProfileScreen() {
     err: errEvents,
   } = useMyEvents();
 
-  // NOVO: util simples para "há X dias/semanas"
+  // ---- NOVO: stats por esporte (média 0..3 por nome do esporte) ----
+  const [sportStats, setSportStats] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (!userId || !BASE_URL) return;
+    (async () => {
+      try {
+        const token =
+          (await getToken({ template: "backend", skipCache: true })) ||
+          (await getToken({ template: "backend" }));
+        if (!token) return;
+        const res = await fetch(
+          `${BASE_URL}/api/v1/users/${encodeURIComponent(userId)}/sport-stats`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (!res.ok) return;
+        const list: { sport: string; averageSkill?: number | null }[] =
+          await res.json();
+        const map: Record<string, number> = {};
+        list.forEach((s) => {
+          if (s.averageSkill != null) map[s.sport] = s.averageSkill as number;
+        });
+        setSportStats(map);
+      } catch {
+        // silencioso — a seção de esportes só não mostrará níveis
+      }
+    })();
+  }, [userId]);
+
+  // util simples para "há X dias/semanas"
   function toTimeAgo(isoDate: string) {
     const d = new Date(isoDate);
     const now = new Date();
@@ -68,12 +100,8 @@ export default function ProfileScreen() {
     return weeks === 1 ? "Há 1 semana" : `Há ${weeks} semanas`;
   }
 
-  const mutualAvatarsKeys: (keyof typeof friendImages)[] = [
-    "user1",
-    "user2",
-    "user3",
-  ];
-  const mutualAvatars = mutualAvatarsKeys.map((k) => friendImages[k]); // ✅ vira ImageSourcePropType[]
+  const mutualAvatarsKeys: (keyof typeof friendImages)[] = ["user1", "user2", "user3"];
+  const mutualAvatars = mutualAvatarsKeys.map((k) => friendImages[k]);
   const mutualCount = 7;
 
   const onPressMutual = () => {
@@ -81,7 +109,7 @@ export default function ProfileScreen() {
   };
 
   const handleAddSport = async (sport: string) => {
-    const current = data?.sports ?? [];
+    const current = (data?.sports ?? []);
     const sportsAsStrings = current.map((s: Sport | string) =>
       typeof s === "string" ? s : s.name
     );
@@ -94,7 +122,7 @@ export default function ProfileScreen() {
   };
 
   const handleRemoveSport = async (sport: string) => {
-    const current = data?.sports ?? [];
+    const current = (data?.sports ?? []);
     try {
       const sportsAsStrings = current.map((s: Sport | string) =>
         typeof s === "string" ? s : s.name
@@ -104,6 +132,7 @@ export default function ProfileScreen() {
       Alert.alert("Erro", e?.message ?? "Não foi possível remover o esporte");
     }
   };
+
   const openEvent = (eventId: number) => {
     router.push({
       pathname: "/auth/event/[id]",
@@ -111,7 +140,7 @@ export default function ProfileScreen() {
     });
   };
 
-  // NOVO: mapeia “participated” para ActivitiesSection
+  // Mapeia “participated” para ActivitiesSection
   const participatedActivities: Activity[] = (participated ?? []).map((ev) => ({
     id: String(ev.id),
     title: ev.name,
@@ -121,7 +150,6 @@ export default function ProfileScreen() {
   }));
 
   const renderTabContent = () => {
-    // estados da listagem de eventos
     if (loadingEvents) {
       return <Text className="text-black px-7">Carregando…</Text>;
     }
@@ -145,13 +173,12 @@ export default function ProfileScreen() {
                   : require("../../assets/images/default_card.png"),
               price: ev.price ? String(ev.price) : "Free",
             }))}
-            onPressEvent={(ev) => openEvent(ev.id)} // ← navega
+            onPressEvent={(ev) => openEvent(ev.id)} // navega para a tela do evento
             emptyText="Você ainda não se inscreveu em eventos"
           />
         );
 
       case "participados":
-        // NOVO: usa ActivitiesSection em vez do texto estático
         return (
           <ActivitiesSection
             activities={participatedActivities}
@@ -189,6 +216,14 @@ export default function ProfileScreen() {
     }
   };
 
+  // Média global de rating (se vier do backend no DTO do perfil)
+  const avgRating =
+    (data as any)?.totalReceivedEvaluations &&
+    (data as any)?.totalReceivedEvaluations > 0
+      ? ((data as any).totalRating ?? 0) /
+        (data as any).totalReceivedEvaluations
+      : null;
+
   // estados “não logado” ou “Clerk ainda carregando”
   if (!isLoaded) {
     return (
@@ -205,9 +240,7 @@ export default function ProfileScreen() {
           Você precisa estar logado para ver o seu perfil.
         </Text>
         <TouchableOpacity
-          onPress={() => {
-            /* router.push('/auth/login') */
-          }}
+          onPress={() => {}}
           className="bg-[#10CF65] px-6 py-3 rounded-xl"
         >
           <Text className="text-white font-medium">Ir para Login</Text>
@@ -232,14 +265,12 @@ export default function ProfileScreen() {
             name={data?.name ?? user?.fullName ?? "—"}
             photoUrl={data?.photo ?? user?.imageUrl ?? undefined}
             stats={{ friends: 144, activities: 12, createdActivities: 2 }}
-            rating="4.80"
+            rating={avgRating != null ? avgRating.toFixed(2) : "—"}
           />
 
           <ProfileInfo
             ageText={
-              data?.birthday
-                ? calcAgeText(data.birthday)
-                : "Idade não informada"
+              data?.birthday ? calcAgeText(data.birthday) : "Idade não informada"
             }
             cityText={data?.city ? `${data.city}` : "Cidade não informada"}
             jobText={"Designer"} // troque quando vier do backend
@@ -262,6 +293,7 @@ export default function ProfileScreen() {
                     )
                   : []
               }
+              perSportLevel={sportStats}
               onAddSport={handleAddSport}
               onRemoveSport={handleRemoveSport}
             />

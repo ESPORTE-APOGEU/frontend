@@ -1,9 +1,17 @@
 import React, { useState } from 'react';
-import { Modal, View, Text, TouchableOpacity, TextInput, ScrollView, Platform, Alert } from 'react-native';
+import {
+  Modal,
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Platform,
+  Alert,
+} from 'react-native';
 import Slider from '@react-native-community/slider';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Location from 'expo-location';
-
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface FilterModalProps {
   visible: boolean;
@@ -11,388 +19,351 @@ interface FilterModalProps {
   onFilter?: (filter: any) => void;
 }
 
-const sportsOptions = ['Futebol', 'Basquete', 'Vôlei', 'Tênis', 'Handebol', 'Corrida', 'Natação'];
+// opções mostradas em “Modalidade”
+const sportsOptions = [
+  'Futebol',
+  'Vôlei',
+  'Basquete',
+  'Yoga',
+  'Corrida',
+  'Tênis',
+  'Beach Tennis',
+  'Futevôlei',
+  'Pilates',
+  'Paddle',
+  'Pickleball',
+];
+
+const levels = ['Iniciante', 'Intermediário', 'Avançado', 'Semi-profissional'];
+const genders = ['Masculino', 'Feminino', 'Misto'] as const;
+type Gender = (typeof genders)[number];
+
+const GREEN = '#43A047';
+const GREEN_LIGHT = '#F7FFED';
+const TEXT_PRIMARY = '#212121';
+const TEXT_SECONDARY = '#263238';
+const CHIP_BORDER = 'rgba(0,0,0,0.5)';
+
+// ícone por esporte
+function sportIconName(label: string): keyof typeof MaterialCommunityIcons.glyphMap {
+  const l = label.toLowerCase();
+  if (l.includes('futebol')) return 'soccer';
+  if (l.includes('vôlei') || l.includes('volei')) return 'volleyball';
+  if (l.includes('basquete')) return 'basketball';
+  if (l.includes('yoga') || l.includes('pilates')) return 'yoga';
+  if (l.includes('corrida')) return 'run';
+  if (l.includes('tênis') || l.includes('tenis')) return 'tennis';
+  if (l.includes('beach')) return 'tennis-ball';
+  if (l.includes('futevôlei') || l.includes('futevolei')) return 'volleyball';
+  if (l.includes('paddle') || l.includes('pickle')) return 'tennis-ball';
+  return 'dumbbell';
+}
 
 const FilterModal: React.FC<FilterModalProps> = ({ visible, onClose, onFilter }) => {
   const [selectedSports, setSelectedSports] = useState<string[]>([]);
-  const [selectedLevel, setSelectedLevel] = useState<string>('Iniciante');
+  const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
+  const [selectedGender, setSelectedGender] = useState<Gender | null>(null);
+
   const [distance, setDistance] = useState<number>(0);
-  const [eventDate, setEventDate] = useState<string>('');
-  const [startTime, setStartTime] = useState<Date>(new Date(new Date().setHours(0,0,0,0)));
-  const [endTime, setEndTime] = useState<Date>(new Date(new Date().setHours(0,0,0,0)));
-  const [showStartTimePicker, setShowStartTimePicker] = useState(false);
-  const [showEndTimePicker, setShowEndTimePicker] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [locMode, setLocMode] = useState<'home' | 'current'>('home');
+
   const [dateObj, setDateObj] = useState<Date | undefined>(undefined);
-  const [showSportsDropdown, setShowSportsDropdown] = useState(false);
-  const [useCurrentLocation, setUseCurrentLocation] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const [startTime, setStartTime] = useState<Date>(new Date(new Date().setHours(0, 0, 0, 0)));
+  const [endTime, setEndTime] = useState<Date>(new Date(new Date().setHours(0, 0, 0, 0)));
+  const [selectedTimeRange, setSelectedTimeRange] = useState<'manha' | 'tarde' | 'noite' | null>(null);
+
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
 
-  const levels = ['Iniciante', 'Intermediário', 'Avançado', 'Semi-profissional'];
+  const isTimeFilterActive = selectedTimeRange !== null;
 
-  const removeSport = (sport: string) => {
-    setSelectedSports(prev => prev.filter(s => s !== sport));
+  const toggleSport = (s: string) => {
+    setSelectedSports((curr) => (curr.includes(s) ? curr.filter((x) => x !== s) : [...curr, s]));
   };
 
-  const addSport = (sport: string) => {
-    if (!selectedSports.includes(sport)) {
-      setSelectedSports(prev => [...prev, sport]);
-    }
-    setShowSportsDropdown(false);
-  };
-
-  const handleDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(false);
-    if (selectedDate) {
-      setDateObj(selectedDate);
-      const formatted = selectedDate.toLocaleDateString('pt-BR');
-      setEventDate(formatted);
-    }
-  };
-
-  // Função para buscar localização atual usando expo-location
-  const handleToggleLocation = async () => {
-    if (!useCurrentLocation) {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setLocation(null);
-        setUseCurrentLocation(false);
-        return;
-      }
-      try {
-        const pos = await Location.getCurrentPositionAsync({});
-        setLocation({
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-        });
-        setUseCurrentLocation(true);
-      } catch (err) {
-        setLocation(null);
-        setUseCurrentLocation(false);
-      }
-    } else {
+  const askCurrentLocation = async () => {
+    let { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') return;
+    try {
+      const pos = await Location.getCurrentPositionAsync({});
+      setLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+    } catch {
       setLocation(null);
-      setUseCurrentLocation(false);
     }
   };
 
-  // Helper para formatar horário
-  const formatTime = (d: Date) => d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false });
-  const isDefaultTime = (d: Date) => d.getHours() === 0 && d.getMinutes() === 0; // segundos/millis já zerados
-  const isTimeFilterActive = !(isDefaultTime(startTime) && isDefaultTime(endTime) && startTime.getTime() === endTime.getTime());
-
-  // Função para montar o filtro e chamar o callback
   const handleFilterPress = () => {
     const filter: any = {};
-
     if (selectedSports.length > 0) filter.sports = selectedSports;
-    if (selectedLevel && selectedLevel !== 'Iniciante') filter.levels = [selectedLevel];
+    if (selectedLevel) filter.levels = [selectedLevel];
+    if (selectedGender) filter.gender = selectedGender;
     if (dateObj) filter.date = dateObj.toISOString().split('T')[0];
     if (isTimeFilterActive) {
-      const sh = startTime.getHours().toString().padStart(2,'0');
-      const sm = startTime.getMinutes().toString().padStart(2,'0');
+      const sh = String(startTime.getHours()).padStart(2, '0');
+      const sm = String(startTime.getMinutes()).padStart(2, '0');
+      const eh = String(endTime.getHours()).padStart(2, '0');
+      const em = String(endTime.getMinutes()).padStart(2, '0');
       filter.startTime = `${sh}:${sm}`;
-      const eh = endTime.getHours().toString().padStart(2,'0');
-      const em = endTime.getMinutes().toString().padStart(2,'0');
       filter.endTime = `${eh}:${em}`;
     }
-    if (distance > 0 && location) {
-      filter.latitude = location.latitude;
-      filter.longitude = location.longitude;
+    if (distance > 0) {
       filter.maxDistanceKm = distance;
+      if (locMode === 'current' && location) {
+        filter.latitude = location.latitude;
+        filter.longitude = location.longitude;
+      }
     }
-
-    console.log('Filtro enviado:', filter); // debug
-    if (onFilter) onFilter(filter);
+    onFilter?.(filter);
     onClose();
   };
 
-  // Função para limpar filtro
   const handleClearFilter = () => {
     setSelectedSports([]);
-    setSelectedLevel('Iniciante');
+    setSelectedLevel(null);
+    setSelectedGender(null);
     setDistance(0);
-    setEventDate('');
-    setDateObj(undefined);
-    const reset = new Date(new Date().setHours(0,0,0,0));
-    setStartTime(reset);
-    setEndTime(reset);
+    setLocMode('home');
     setLocation(null);
-    if (onFilter) onFilter(null);
+    setDateObj(undefined);
+    setStartTime(new Date(new Date().setHours(0, 0, 0, 0)));
+    setEndTime(new Date(new Date().setHours(0, 0, 0, 0)));
+    setSelectedTimeRange(null);
+    onFilter?.(null);
     onClose();
   };
 
-  // Garantir que endTime não seja antes de startTime
-  const onChangeStartTime = (_: any, selected?: Date) => {
-    if (selected) {
-      const adjusted = new Date(selected);
-      // Normalizar segundos/milisegundos
-      adjusted.setSeconds(0,0);
-      setStartTime(adjusted);
-      if (endTime < adjusted) {
-        const newEnd = new Date(adjusted.getTime() + 60*60*1000); // +1h
-        newEnd.setSeconds(0,0);
-        setEndTime(newEnd);
-      }
-    }
-    if (Platform.OS !== 'ios') setShowStartTimePicker(false);
+  const selectLocMode = async (mode: 'home' | 'current') => {
+    setLocMode(mode);
+    if (mode === 'current') await askCurrentLocation();
   };
-  const onChangeEndTime = (_: any, selected?: Date) => {
-    if (selected) {
-      const adjusted = new Date(selected);
-      adjusted.setSeconds(0,0);
-      if (adjusted < startTime) {
-        setEndTime(startTime);
-      } else {
-        setEndTime(adjusted);
-      }
-    }
-    if (Platform.OS !== 'ios') setShowEndTimePicker(false);
-  };
+
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <View style={{
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'flex-end'
-      }}>
-        <View style={{
-          backgroundColor: '#fff',
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-          padding: 20,
-          maxHeight: '80%',
-        }}>
-          <View style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 20
-          }}>
-            <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#000' }}>
-              Sports Events
-            </Text>
-          </View>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+        <View
+          style={{
+            backgroundColor: GREEN_LIGHT,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            paddingTop: 18,
+            paddingBottom: 16,
+            maxHeight: '88%',
+          }}
+        >
+          {/* “barra” de arrastar */}
+          <View
+            style={{
+              alignSelf: 'center',
+              width: 44,
+              height: 4,
+              borderRadius: 999,
+              backgroundColor: 'rgba(0,0,0,0.15)',
+              marginBottom: 8,
+            }}
+          />
 
-          {/* Chips de filtros ativos */}
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 10 }}>
-            {/* Esportes */}
-            {selectedSports.map((sport, index) => (
-              <View key={`chip-sport-${index}`} style={{
-                backgroundColor: '#E8F5E8',
-                borderRadius: 16,
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                marginRight: 8,
-                marginBottom: 8,
-                flexDirection: 'row',
-                alignItems: 'center'
-              }}>
-                <Text style={{ color: '#00D84A', marginRight: 4 }}>{sport}</Text>
-                <TouchableOpacity onPress={() => removeSport(sport)}>
-                  <Text style={{ color: '#00D84A' }}>×</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
-            {/* Nível */}
-            {selectedLevel !== 'Iniciante' && (
-              <View style={{
-                backgroundColor: '#E8F5E8',
-                borderRadius: 16,
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                marginRight: 8,
-                marginBottom: 8,
-                flexDirection: 'row',
-                alignItems: 'center'
-              }}>
-                <Text style={{ color: '#00D84A', marginRight: 4 }}>{selectedLevel}</Text>
-                <TouchableOpacity onPress={() => setSelectedLevel('Iniciante')}>
-                  <Text style={{ color: '#00D84A' }}>×</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-            {/* Data */}
-            {dateObj && (
-              <View style={{
-                backgroundColor: '#E8F5E8',
-                borderRadius: 16,
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                marginRight: 8,
-                marginBottom: 8,
-                flexDirection: 'row',
-                alignItems: 'center'
-              }}>
-                <Text style={{ color: '#00D84A', marginRight: 4 }}>
-                  {dateObj.toLocaleDateString('pt-BR')}
-                </Text>
-                <TouchableOpacity onPress={() => { setDateObj(undefined); setEventDate(''); }}>
-                  <Text style={{ color: '#00D84A' }}>×</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-            {/* Distância */}
-            {distance > 0 && (
-              <View style={{
-                backgroundColor: '#E8F5E8',
-                borderRadius: 16,
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                marginRight: 8,
-                marginBottom: 8,
-                flexDirection: 'row',
-                alignItems: 'center'
-              }}>
-                <Text style={{ color: '#00D84A', marginRight: 4 }}>
-                  {distance.toFixed(1)} km
-                </Text>
-                <TouchableOpacity onPress={() => setDistance(0)}>
-                  <Text style={{ color: '#00D84A' }}>×</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-            {/* Horário */}
-            {isTimeFilterActive && (
-              <View style={{
-                backgroundColor: '#E8F5E8',
-                borderRadius: 16,
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                marginRight: 8,
-                marginBottom: 8,
-                flexDirection: 'row',
-                alignItems: 'center'
-              }}>
-                <Text style={{ color: '#00D84A', marginRight: 4 }}>
-                  {`${formatTime(startTime)} - ${formatTime(endTime)}`}
-                </Text>
-                <TouchableOpacity onPress={() => {
-                  const reset = new Date(new Date().setHours(0,0,0,0));
-                  setStartTime(reset);
-                  setEndTime(reset);
-                }}>
-                  <Text style={{ color: '#00D84A' }}>×</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-          {/* Fim chips de filtros ativos */}
-
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {/* Esporte Section */}
-            <View style={{ marginBottom: 20 }}>
-              <Text style={{ fontSize: 18, fontWeight: '600', marginBottom: 10 }}>
-                Esporte
+          <ScrollView contentContainerStyle={{ paddingBottom: 30 }} showsVerticalScrollIndicator={false}>
+            {/* Modalidade */}
+            <View style={{ paddingHorizontal: 24, marginTop: 8 }}>
+              <Text style={{ fontSize: 20, lineHeight: 30, color: TEXT_PRIMARY, fontWeight: '500' }}>
+                Modalidade
               </Text>
-              <TouchableOpacity
-                style={{
-                  borderWidth: 1,
-                  borderColor: '#ddd',
-                  borderRadius: 8,
-                  padding: 12,
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}
-                onPress={() => setShowSportsDropdown(!showSportsDropdown)}
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingVertical: 12, gap: 12 }}
               >
-                <Text>Selecione seu esporte</Text>
-                <Text>⌄</Text>
-              </TouchableOpacity>
-              {showSportsDropdown && (
-                <View style={{
-                  borderWidth: 1,
-                  borderColor: '#ddd',
-                  borderRadius: 8,
-                  backgroundColor: '#fff',
-                  marginTop: 4,
-                  zIndex: 10
-                }}>
-                  {sportsOptions.map((sport) => (
+                {sportsOptions.map((s) => {
+                  const active = selectedSports.includes(s);
+                  return (
                     <TouchableOpacity
-                      key={sport}
+                      key={s}
+                      onPress={() => toggleSport(s)}
                       style={{
-                        padding: 12,
-                        backgroundColor: selectedSports.includes(sport) ? '#E8F5E8' : '#fff'
+                        paddingHorizontal: 14,
+                        height: 36,
+                        borderRadius: 10,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 6,
+                        borderWidth: active ? 0 : 0.6,
+                        borderColor: active ? 'transparent' : CHIP_BORDER,
+                        backgroundColor: active ? GREEN : 'transparent',
+                        shadowColor: active ? '#000' : undefined,
+                        shadowOpacity: active ? 0.25 : 0,
+                        shadowRadius: active ? 4 : 0,
+                        elevation: active ? 2 : 0,
                       }}
-                      onPress={() => addSport(sport)}
-                      disabled={selectedSports.includes(sport)}
                     >
-                      <Text style={{ color: selectedSports.includes(sport) ? '#00D84A' : '#000' }}>
-                        {sport}
+                      <MaterialCommunityIcons
+                        name={sportIconName(s)}
+                        size={14}
+                        color={active ? '#FFFFFF' : TEXT_SECONDARY}
+                      />
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          lineHeight: 14,
+                          fontWeight: '600',
+                          color: active ? '#FFFFFF' : TEXT_SECONDARY,
+                        }}
+                      >
+                        {s}
                       </Text>
                     </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 }}>
-                {selectedSports.map((sport, index) => (
-                  <View key={index} style={{
-                    backgroundColor: '#E8F5E8',
-                    borderRadius: 16,
-                    paddingHorizontal: 12,
-                    paddingVertical: 6,
-                    marginRight: 8,
-                    marginBottom: 8,
-                    flexDirection: 'row',
-                    alignItems: 'center'
-                  }}>
-                    <Text style={{ color: '#00D84A', marginRight: 4 }}>{sport}</Text>
-                    <TouchableOpacity onPress={() => removeSport(sport)}>
-                      <Text style={{ color: '#00D84A' }}>×</Text>
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
+                  );
+                })}
+              </ScrollView>
             </View>
 
-            {/* Level Section */}
-            <View style={{ marginBottom: 20 }}>
-              <Text style={{ fontSize: 18, fontWeight: '600', marginBottom: 10 }}>
-                Level
+            {/* Nível */}
+            <View style={{ paddingHorizontal: 24, marginTop: 6 }}>
+              <Text style={{ fontSize: 20, lineHeight: 30, color: TEXT_PRIMARY, fontWeight: '500', marginBottom: 8 }}>
+                Nível
               </Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-                {levels.map((level) => (
-                  <TouchableOpacity
-                    key={level}
-                    style={{
-                      backgroundColor: selectedLevel === level ? '#00D84A' : '#F0F0F0',
-                      paddingHorizontal: 16,
-                      paddingVertical: 8,
-                      borderRadius: 20,
-                      marginRight: 8,
-                      marginBottom: 8
-                    }}
-                    onPress={() => setSelectedLevel(level)}
-                  >
-                    <Text style={{
-                      color: selectedLevel === level ? '#fff' : '#666',
-                      fontSize: 12
-                    }}>
-                      {level}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+
+              <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+                {levels.map((lvl) => {
+                  const active = selectedLevel === lvl;
+                  return (
+                    <TouchableOpacity
+                      key={lvl}
+                      onPress={() => setSelectedLevel(selectedLevel === lvl ? null : lvl)}
+                      style={{
+                        paddingHorizontal: 16,
+                        height: 36,
+                        borderRadius: 10,
+                        justifyContent: 'center',
+                        borderWidth: active ? 0 : 0.5,
+                        borderColor: active ? GREEN : TEXT_SECONDARY,
+                        backgroundColor: active ? GREEN : 'transparent',
+                        shadowColor: active ? '#000' : undefined,
+                        shadowOpacity: active ? 0.25 : 0,
+                        shadowRadius: active ? 4 : 0,
+                        elevation: active ? 2 : 0,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          lineHeight: 14,
+                          fontWeight: '600',
+                          color: active ? '#FFFFFF' : TEXT_SECONDARY,
+                        }}
+                      >
+                        {lvl}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
 
-            {/* Distance Section */}
-            <View style={{ marginBottom: 20 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-                <Text style={{ fontSize: 18, fontWeight: '600', marginRight: 6 }}>
-                  Distancia
-                </Text>
+            {/* Gênero */}
+            <View style={{ paddingHorizontal: 24, marginTop: 14 }}>
+              <Text style={{ fontSize: 20, lineHeight: 30, color: TEXT_PRIMARY, fontWeight: '500', marginBottom: 8 }}>
+                Gênero
+              </Text>
+
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                {genders.map((g) => {
+                  const active = selectedGender === g;
+                  return (
+                    <TouchableOpacity
+                      key={g}
+                      onPress={() => setSelectedGender(selectedGender === g ? null : g)}
+                      style={{
+                        paddingHorizontal: 16,
+                        height: 36,
+                        borderRadius: 10,
+                        justifyContent: 'center',
+                        borderWidth: active ? 0 : 0.5,
+                        borderColor: active ? GREEN : TEXT_SECONDARY,
+                        backgroundColor: active ? GREEN : 'transparent',
+                        shadowColor: active ? '#000' : undefined,
+                        shadowOpacity: active ? 0.25 : 0,
+                        shadowRadius: active ? 4 : 0,
+                        elevation: active ? 2 : 0,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          lineHeight: 14,
+                          fontWeight: '600',
+                          color: active ? '#FFFFFF' : TEXT_SECONDARY,
+                        }}
+                      >
+                        {g}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Distância */}
+            <View style={{ paddingHorizontal: 24, marginTop: 18 }}>
+              <Text style={{ fontSize: 20, lineHeight: 30, color: TEXT_PRIMARY, fontWeight: '500', marginBottom: 10 }}>
+                Distância
+              </Text>
+
+              <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
+                {/* Casa */}
+                <TouchableOpacity
+                  onPress={() => selectLocMode('home')}
+                  style={{
+                    paddingHorizontal: 16,
+                    height: 23,
+                    borderRadius: 10,
+                    justifyContent: 'center',
+                    backgroundColor: locMode === 'home' ? GREEN : 'transparent',
+                    borderWidth: locMode === 'home' ? 0 : 0.5,
+                    borderColor: TEXT_SECONDARY,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontWeight: '700',
+                      color: locMode === 'home' ? '#FFFFFF' : TEXT_SECONDARY,
+                    }}
+                  >
+                    Casa
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Localização atual */}
+                <TouchableOpacity
+                  onPress={() => selectLocMode('current')}
+                  style={{
+                    paddingHorizontal: 16,
+                    height: 23,
+                    borderRadius: 10,
+                    justifyContent: 'center',
+                    backgroundColor: locMode === 'current' ? GREEN : 'transparent',
+                    borderWidth: locMode === 'current' ? 0 : 0.5,
+                    borderColor: TEXT_SECONDARY,
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      fontWeight: '700',
+                      color: locMode === 'current' ? '#FFFFFF' : TEXT_SECONDARY,
+                    }}
+                  >
+                    Localização atual
+                  </Text>
+                </TouchableOpacity>
+
                 <TouchableOpacity
                   onPress={() =>
                     Alert.alert(
                       'Filtro de Localização',
-                      'Se a distância for maior que 0, o filtro será feito com base na sua localização atual.'
+                      'Se a distância for maior que 0, a busca usa sua localização (ao escolher “Localização atual”).'
                     )
                   }
                   style={{
@@ -402,152 +373,271 @@ const FilterModal: React.FC<FilterModalProps> = ({ visible, onClose, onFilter })
                     backgroundColor: '#E0E0E0',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    marginLeft: 2
                   }}
-
                   activeOpacity={0.7}
                 >
                   <Text style={{ color: '#666', fontWeight: 'bold', fontSize: 14 }}>?</Text>
                 </TouchableOpacity>
               </View>
-              <Text style={{ fontSize: 16, marginBottom: 10 }}>{distance.toFixed(1)} km</Text>
+
+              {/* valor da distância em verde (sem linha extra!) */}
+              <Text style={{ color: '#40B843', fontSize: 12, marginBottom: 6 }}>
+                {distance.toFixed(1)} Km
+              </Text>
+
+              {/* slider */}
               <Slider
                 style={{ width: '100%', height: 40 }}
                 minimumValue={0}
                 maximumValue={50}
                 value={distance}
-                onValueChange={async (value) => {
-                  setDistance(value);
-                  if (value > 0 && !location) {
-                    let { status } = await Location.requestForegroundPermissionsAsync();
-                    if (status === 'granted') {
-                      try {
-                        const pos = await Location.getCurrentPositionAsync({});
-                        setLocation({
-                          latitude: pos.coords.latitude,
-                          longitude: pos.coords.longitude,
-                        });
-                      } catch (err) {
-                        setLocation(null);
-                      }
-                    }
+                onValueChange={async (val) => {
+                  setDistance(val);
+                  if (locMode === 'current' && val > 0 && !location) {
+                    await askCurrentLocation();
                   }
                 }}
-                minimumTrackTintColor="#00D84A"
+                minimumTrackTintColor={GREEN}
                 maximumTrackTintColor="#E0E0E0"
+                thumbTintColor={GREEN}
               />
             </View>
-            {/* Calendar Section */}
-            <View style={{ marginBottom: 20 }}>
-              <Text style={{ fontSize: 18, fontWeight: '600', marginBottom: 10 }}>
-                Calendario
+
+            {/* Calendário */}
+            <View style={{ paddingHorizontal: 24, marginTop: 18, width:'70%' }}>
+              <Text style={{ fontSize: 20, lineHeight: 30, color: TEXT_PRIMARY, fontWeight: '500', marginBottom: 10 }}>
+                Calendário
               </Text>
+
               <TouchableOpacity
                 onPress={() => setShowDatePicker(true)}
                 style={{
-                  borderWidth: 1,
-                  borderColor: '#ddd',
-                  borderRadius: 8,
-                  padding: 12,
-                  justifyContent: 'center'
+                  height: 36,
+                  borderRadius: 10,
+                  borderWidth: 0.5,
+                  borderColor: 'rgba(41,45,50,0.7)',
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  paddingHorizontal: 12,
+                  backgroundColor: 'transparent',
+                  alignItems: 'center',
                 }}
               >
-                <Text style={{ fontSize: 16, color: eventDate ? '#000' : '#888' }}>
-                  {eventDate || 'Dia do evento'}
+                <Text
+                  style={{
+                    fontSize: 15,
+                    color: dateObj ? TEXT_SECONDARY : 'rgba(41,45,50,0.7)',
+                    fontWeight: '600',
+                  }}
+                >
+                  {dateObj ? dateObj.toLocaleDateString('pt-BR') : 'Dia do evento'}
                 </Text>
-              </TouchableOpacity>
+                <MaterialCommunityIcons
+                    name="calendar-blank-outline"
+                    size={18}
+                    color={'rgba(41,45,50,0.7)'}
+                  />            </TouchableOpacity>
+
               {showDatePicker && (
                 <DateTimePicker
                   value={dateObj || new Date()}
                   mode="date"
                   display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={handleDateChange}
+                  onChange={(_, selected) => {
+                    setShowDatePicker(false);
+                    if (selected) setDateObj(selected);
+                  }}
                   minimumDate={new Date()}
                 />
               )}
             </View>
 
-            {/* Time Selection */}
-            <View style={{ marginBottom: 30 }}>
-              <Text style={{ fontSize: 18, fontWeight: '600', marginBottom: 10 }}>
-                Selecione seus horarios
+            {/* Selecione seus horários */}
+            <View style={{ paddingHorizontal: 24, marginTop: 20, marginBottom: 14 }}>
+              <Text style={{ fontSize: 20, lineHeight: 30, color: TEXT_PRIMARY, fontWeight: '500', marginBottom: 8 }}>
+                Selecione seus horários
               </Text>
+
               <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                {/* Manhã */}
                 <View style={{ flex: 1, marginRight: 8 }}>
-                  <Text style={{ fontSize: 14, color: '#555', marginBottom: 6 }}>Início</Text>
+                  <Text style={{ fontSize: 15, color: TEXT_PRIMARY, fontWeight: '300', marginBottom: 6 }}>
+                    Manhã
+                  </Text>
                   <TouchableOpacity
-                    onPress={() => { setShowStartTimePicker(true); setShowEndTimePicker(false); }}
-                    style={{ borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, alignItems: 'center' }}
+                    onPress={() => {
+                      const s = new Date(); s.setHours(6, 0, 0, 0);
+                      const e = new Date(); e.setHours(11, 0, 0, 0);
+                      setStartTime(s);
+                      setEndTime(e);
+                      setSelectedTimeRange('manha');
+                    }}
+                    style={{
+                      height: 36,
+                      borderRadius: 10,
+                      paddingHorizontal: 12,
+                      justifyContent: 'center',
+                      borderWidth: selectedTimeRange === 'manha' ? 0 : 0.5,
+                      borderColor: TEXT_SECONDARY,
+                      backgroundColor: selectedTimeRange === 'manha' ? GREEN : 'transparent',
+                      shadowColor: selectedTimeRange === 'manha' ? '#000' : undefined,
+                      shadowOpacity: selectedTimeRange === 'manha' ? 0.25 : 0,
+                      shadowRadius: selectedTimeRange === 'manha' ? 4 : 0,
+                      elevation: selectedTimeRange === 'manha' ? 2 : 0,
+                    }}
                   >
-                    <Text style={{ fontSize: 16 }}>{formatTime(startTime)}</Text>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        fontWeight: '600',
+                        color: selectedTimeRange === 'manha' ? '#FFFFFF' : TEXT_SECONDARY,
+                      }}
+                    >
+                      6:00 às 11:00
+                    </Text>
                   </TouchableOpacity>
                 </View>
-                <View style={{ flex: 1, marginLeft: 8 }}>
-                  <Text style={{ fontSize: 14, color: '#555', marginBottom: 6 }}>Fim</Text>
+
+                {/* Tarde */}
+                <View style={{ flex: 1, marginHorizontal: 8 }}>
+                  <Text style={{ fontSize: 15, color: TEXT_PRIMARY, fontWeight: '300', marginBottom: 6 }}>
+                    Tarde
+                  </Text>
                   <TouchableOpacity
-                    onPress={() => { setShowEndTimePicker(true); setShowStartTimePicker(false); }}
-                    style={{ borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, alignItems: 'center' }}
+                    onPress={() => {
+                      const s = new Date(); s.setHours(11, 0, 0, 0);
+                      const e = new Date(); e.setHours(18, 0, 0, 0);
+                      setStartTime(s);
+                      setEndTime(e);
+                      setSelectedTimeRange('tarde');
+                    }}
+                    style={{
+                      height: 36,
+                      borderRadius: 10,
+                      paddingHorizontal: 12,
+                      justifyContent: 'center',
+                      borderWidth: selectedTimeRange === 'tarde' ? 0 : 0.5,
+                      borderColor: TEXT_SECONDARY,
+                      backgroundColor: selectedTimeRange === 'tarde' ? GREEN : 'transparent',
+                      shadowColor: selectedTimeRange === 'tarde' ? '#000' : undefined,
+                      shadowOpacity: selectedTimeRange === 'tarde' ? 0.25 : 0,
+                      shadowRadius: selectedTimeRange === 'tarde' ? 4 : 0,
+                      elevation: selectedTimeRange === 'tarde' ? 2 : 0,
+                    }}
                   >
-                    <Text style={{ fontSize: 16 }}>{formatTime(endTime)}</Text>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        fontWeight: '600',
+                        color: selectedTimeRange === 'tarde' ? '#FFFFFF' : TEXT_SECONDARY,
+                      }}
+                    >
+                      11:00 às 18:00
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Noite */}
+                <View style={{ flex: 1, marginLeft: 8 }}>
+                  <Text style={{ fontSize: 15, color: TEXT_PRIMARY, fontWeight: '300', marginBottom: 6 }}>
+                    Noite
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      const s = new Date(); s.setHours(18, 0, 0, 0);
+                      const e = new Date(); e.setHours(23, 0, 0, 0);
+                      setStartTime(s);
+                      setEndTime(e);
+                      setSelectedTimeRange('noite');
+                    }}
+                    style={{
+                      height: 36,
+                      borderRadius: 10,
+                      paddingHorizontal: 12,
+                      justifyContent: 'center',
+                      borderWidth: selectedTimeRange === 'noite' ? 0 : 0.5,
+                      borderColor: TEXT_SECONDARY,
+                      backgroundColor: selectedTimeRange === 'noite' ? GREEN : 'transparent',
+                      shadowColor: selectedTimeRange === 'noite' ? '#000' : undefined,
+                      shadowOpacity: selectedTimeRange === 'noite' ? 0.25 : 0,
+                      shadowRadius: selectedTimeRange === 'noite' ? 4 : 0,
+                      elevation: selectedTimeRange === 'noite' ? 2 : 0,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        fontWeight: '600',
+                        color: selectedTimeRange === 'noite' ? '#FFFFFF' : TEXT_SECONDARY,
+                      }}
+                    >
+                      18:00 às 23:00
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
-              {(showStartTimePicker || showEndTimePicker) && (
-                <View style={{ marginTop: 16 }}>
-                  {showStartTimePicker && (
-                    <DateTimePicker
-                      value={startTime}
-                      mode="time"
-                      is24Hour
-                      display={Platform.OS === 'android' ? 'spinner' : 'spinner'}
-                      onChange={onChangeStartTime}
-                    />
-                  )}
-                  {showEndTimePicker && (
-                    <DateTimePicker
-                      value={endTime}
-                      mode="time"
-                      is24Hour
-                      display={Platform.OS === 'android' ? 'spinner' : 'spinner'}
-                      onChange={onChangeEndTime}
-                    />
-                  )}
-                </View>
-              )}
             </View>
-            {/* Botão Limpar Filtro */}
-            {(selectedSports.length > 0 || eventDate || selectedLevel !== 'Iniciante' || distance !== 0 || isTimeFilterActive) && (
 
+            {/* Botão Limpar Filtro */}
+            {/* Botão Limpar Filtro */}
+            {(
+              selectedSports.length > 0 ||
+              dateObj ||
+              selectedLevel != null ||
+              selectedGender != null ||
+              distance !== 0 ||
+              selectedTimeRange
+            ) && (
+              <View style={{ paddingHorizontal: 24, marginTop: 6 }}>
+                <TouchableOpacity
+                  onPress={handleClearFilter}
+                  style={{
+                    backgroundColor: '#F0F0F0',
+                    paddingVertical: 12,
+                    borderRadius: 16,
+                    alignItems: 'center',
+                    marginBottom: 10,
+                  }}
+                >
+                  <Text style={{ color: GREEN, fontSize: 16, fontWeight: 'bold' }}>
+                    Limpar filtro
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+
+            {/* Botão Filtrar */}
+            <View style={{ paddingHorizontal: 24 }}>
               <TouchableOpacity
+                onPress={handleFilterPress}
                 style={{
-                  backgroundColor: '#F0F0F0',
-                  paddingVertical: 12,
-                  borderRadius: 12,
+                  height: 53,
+                  borderRadius: 16,
+                  backgroundColor: GREEN,
                   alignItems: 'center',
-                  marginBottom: 10
+                  justifyContent: 'center',
+                  shadowColor: '#000',
+                  shadowOpacity: 0.25,
+                  shadowRadius: 4,
+                  elevation: 3,
                 }}
-                onPress={handleClearFilter}
               >
-                <Text style={{ color: '#00D84A', fontSize: 16, fontWeight: 'bold' }}>
-                  Limpar Filtro
+                <Text
+                  style={{
+                    color: '#FFFFFF',
+                    fontSize: 24,
+                    lineHeight: 36,
+                    letterSpacing: 0.01,
+                    fontWeight: '600',
+                  }}
+                >
+                  Filtrar
                 </Text>
               </TouchableOpacity>
-            )}
-            {/* Filter Button */}
-            <TouchableOpacity
-              style={{
-                backgroundColor: '#00D84A',
-                paddingVertical: 16,
-                borderRadius: 12,
-                alignItems: 'center',
-                marginBottom: 10
-              }}
-              onPress={handleFilterPress}
-            >
-              <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>
-                Filtrar
-              </Text>
-            </TouchableOpacity>
+            </View>
+
+            <View style={{ height: 8 }} />
           </ScrollView>
         </View>
       </View>

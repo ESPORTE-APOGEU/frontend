@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, View, Text, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { createReport } from '../services/ReportService';
 
 type ReportModalProps = {
   visible: boolean;
@@ -23,9 +24,47 @@ export default function ReportModal({ visible, onClose, onSubmit }: ReportModalP
 
   const handleSelect = (r: string) => setReason((prev) => (prev === r ? '' : r));
 
+  const mapReasonToType = (r: string) => {
+    switch (r) {
+      case 'Conduta antidesportiva':
+        return 'CONDUTA_ANTIDESPORTIVA';
+      case 'Fraude no pagamento':
+        return 'FRAUDE_PAGAMENTO';
+      case 'Infraestrutura precária':
+        return 'INFRAESTRUTURA_PRECARIA';
+      default:
+        return 'OUTROS';
+    }
+  };
+
+  const [loading, setLoading] = useState(false);
+
   const handleSubmit = () => {
-    onSubmit?.(reason, description);
-    onClose();
+    // call backend
+    (async () => {
+      try {
+        setLoading(true);
+        const type = mapReasonToType(reason);
+        const payload = { type, description, reportedUserId: undefined } as any;
+        // If parent provided onSubmit, allow it to populate reportedUserId or event
+        if (onSubmit) {
+          onSubmit(reason, description);
+        }
+        // try to create report via service; ignore if parent handled persistence
+        await createReport(payload);
+        setLoading(false);
+        onClose();
+        Alert.alert('Denúncia enviada', 'Sua denúncia foi recebida com sucesso.');
+      } catch (err: any) {
+        setLoading(false);
+        console.error('[ReportModal] createReport err=', err?.response || err);
+        if (err?.response?.status === 401) {
+          Alert.alert('Não autorizado', 'Você precisa estar logado para enviar uma denúncia.');
+        } else {
+          Alert.alert('Erro', 'Não foi possível enviar a denúncia. Tente novamente mais tarde.');
+        }
+      }
+    })();
   };
 
   return (
@@ -61,8 +100,12 @@ export default function ReportModal({ visible, onClose, onSubmit }: ReportModalP
               className="w-full min-h-[120px] border border-gray-200 rounded-lg p-2.5 mt-1 text-[15px] text-top"
             />
 
-            <TouchableOpacity className={`bg-[#00D36C] py-3 rounded-lg w-full items-center mt-3 ${!reason ? 'opacity-50' : ''}`} onPress={handleSubmit} disabled={!reason}>
-              <Text className="text-white font-bold text-lg">Reportar</Text>
+            <TouchableOpacity
+              className={`bg-[#00D36C] py-3 rounded-lg w-full items-center mt-3 ${!reason || loading ? 'opacity-50' : ''}`}
+              onPress={handleSubmit}
+              disabled={!reason || loading}
+            >
+              {loading ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-bold text-lg">Reportar</Text>}
             </TouchableOpacity>
           </View>
         </View>
