@@ -4,6 +4,7 @@ import { Feather } from "@expo/vector-icons";
 
 export type Request = {
   id: string;
+  userId: string
   name: string;
   avatar?: string | null;   // URL
   mutualCount?: number;     // opcional
@@ -13,9 +14,10 @@ interface Props {
   requests: Request[];
   onAccept: (requestId: string) => void;
   onReject: (requestId: string) => void;
+  onOpenProfile: (userId: string) => void;
 }
 
-export function FriendRequests({ requests, onAccept, onReject }: Props) {
+export function FriendRequests({ requests, onAccept, onReject, onOpenProfile }: Props) {
   const fallback = require("../assets/images/Calendar.png"); // fallback local
 
   return (
@@ -23,21 +25,19 @@ export function FriendRequests({ requests, onAccept, onReject }: Props) {
 
       {requests.map((r) => (
         <View key={r.id} style={styles.row}>
-          {/* avatar 43x43 com leve sombra */}
-          <Image
-            source={r.avatar ? { uri: r.avatar } : fallback}
-            style={styles.avatar}
-          />
-
-          <View style={{ flex: 1 }}>
-            <Text style={styles.name}>{r.name}</Text>
-
-            {!!r.mutualCount && r.mutualCount > 0 && (
-              <Text style={styles.mutualText}>
-                {r.mutualCount} amigos em comum
-              </Text>
-            )}
-          </View>
+          <TouchableOpacity
+            style={{ flex: 1, flexDirection: "row", alignItems: "center" }}
+            activeOpacity={0.7}
+            onPress={() => onOpenProfile(r.userId)}
+          >
+            <Image source={r.avatar ? { uri: r.avatar } : fallback} style={styles.avatar}/>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.name}>{r.name}</Text>
+              {!!r.mutualCount && r.mutualCount > 0 && (
+                <Text style={styles.mutualText}>{r.mutualCount} amigos em comum</Text>
+              )}
+            </View>
+          </TouchableOpacity>
 
           {/* botões pequenos “quadradinhos” (32x32) com borda verde, como no figma */}
 
@@ -48,7 +48,7 @@ export function FriendRequests({ requests, onAccept, onReject }: Props) {
           >
             <Feather name="check" size={14} color="rgba(16,207,101,0.76)" />
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[styles.squareBtn, styles.squareBtnOutline]}
             onPress={() => onReject(r.id)}

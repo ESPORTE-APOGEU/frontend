@@ -10,9 +10,11 @@ import { getPendingRequests, respondToRequest, createFriendRequest } from "../se
 import { getFriendSuggestions } from "../services/FriendSuggestionService";
 import {flattenArray} from "expo-router/vendor/react-helmet-async/lib/utils";
 import { attachAuth } from "@/src/services/Api"; // <-- traga isto também
+import { useRouter } from "expo-router";
 
 
 export default function FriendsScreen() {
+  const router = useRouter();
   const { getToken, isLoaded, isSignedIn } = useAuth();
   const [search, setSearch] = useState("");
   const [requests, setRequests] = useState<Request[]>([]);
@@ -32,6 +34,7 @@ export default function FriendsScreen() {
       console.log(data);
       const formattedData = data.map((req: any) => ({
         id: String(req.id),
+        userId: req.sender?.id,
         name: req.sender?.name || "Nome não informado",
         avatar: req.sender?.photo || null,  // << URL vinda do back
         mutualCount: req.mutualCount ?? 0,
@@ -41,6 +44,10 @@ export default function FriendsScreen() {
       console.error("Erro ao buscar solicitações:", error);
       Alert.alert("Erro", "Não foi possível carregar as solicitações de amizade.");
     }
+  };
+
+   const openProfile = (userId: string) => {
+    router.push({ pathname: "/auth/user/[id]", params: { id: userId } });
   };
 
   // Mantido: sua função original para buscar sugestões, agora usando o serviço atualizado
@@ -114,11 +121,11 @@ return (
       </View>
 
       <View style={styles.section}>
-        <FriendRequests requests={filteredRequests} onAccept={handleAccept} onReject={handleReject} />
+        <FriendRequests requests={filteredRequests} onAccept={handleAccept} onReject={handleReject} onOpenProfile={openProfile} />
       </View>
 
       <View style={styles.section}>
-        <FriendSuggestions suggestions={filteredSuggestions} onConnect={handleConnect} />
+        <FriendSuggestions suggestions={filteredSuggestions} onConnect={handleConnect} onOpenProfile={openProfile} />
       </View>
     </ScrollView>
 

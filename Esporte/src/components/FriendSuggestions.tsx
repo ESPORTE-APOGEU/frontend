@@ -12,9 +12,10 @@ export type Suggestion = {
 interface Props {
   suggestions: Suggestion[];
   onConnect: (receiverId: string) => void;
+  onOpenProfile: (userId: string) => void;
 }
 
-export function FriendSuggestions({ suggestions, onConnect }: Props) {
+export function FriendSuggestions({ suggestions, onConnect, onOpenProfile }: Props) {
   const fallback = require("../assets/images/Calendar.png");
 
   return (
@@ -23,19 +24,17 @@ export function FriendSuggestions({ suggestions, onConnect }: Props) {
 
       {suggestions.map((s) => (
         <View key={s.id} style={styles.row}>
-          {/* avatar 34x34 com sombra */}
-          <Image
-            source={s.avatar ? { uri: s.avatar } : fallback}
-            style={styles.avatar}
-          />
-
-          <View style={{ flex: 1 }}>
-            <Text style={styles.name}>{s.name}</Text>
-          </View>
-
-          {/* contador simples à direita, como no figma (“4”, “6”, etc.) */}
-          <Text style={styles.countText}>{s.mutualCount}</Text>
-
+          <TouchableOpacity
+            style={{ flex: 1, flexDirection: "row", alignItems: "center" }}
+            activeOpacity={0.7}
+            onPress={() => onOpenProfile(s.id)}
+          >
+            <Image source={s.avatar ? { uri: s.avatar } : fallback} style={styles.avatar}/>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.name}>{s.name}</Text>
+            </View>
+            <Text style={styles.countText}>{s.mutualCount}</Text>
+          </TouchableOpacity>
           {/* botão verde “Adicionar” 96x28 radius 10.5, Poppins 12 branco */}
           <TouchableOpacity
             style={styles.addBtn}
