@@ -1,7 +1,6 @@
 import React from "react";
 import { View, Text } from "react-native";
-import { FriendCard } from "./FriendCard";
-import { images } from "./FriendCard";
+import { FriendCard, images } from "./FriendCard";
 
 export type FriendItem = {
   id: string;
