@@ -19,7 +19,7 @@ export default function StepForm1({ onNext, form, setForm }: StepsSignupProps) {
   React.useEffect(() => {
     if (!isLoaded || !user) return;
 
-    setForm(prev => {
+    setForm((prev) => {
       const nameFromClerk =
         user.fullName?.trim() ||
         [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
@@ -51,7 +51,7 @@ export default function StepForm1({ onNext, form, setForm }: StepsSignupProps) {
   const handleNext = () => onNext?.();
 
   return (
-    <View className="flex-1">
+    <View className="flex-1 mt-28">
       <TextInput
         placeholder="Digite seu Nome"
         label="Nome"
@@ -61,14 +61,19 @@ export default function StepForm1({ onNext, form, setForm }: StepsSignupProps) {
 
       <TextInput
         placeholder="youremail@example.com"
-        label="Email"
+        label="E-mail"
         keyboardType="email-address"
         autoCapitalize="none"
         value={form.email}
         onChangeText={(text) => setForm({ ...form, email: text })}
       />
-
-      <LargeButton onPress={handleNext} title="Próximo" disabled={!stepValid} />
+      <View className="mt-8">
+        <LargeButton
+          onPress={handleNext}
+          title="Próximo"
+          disabled={!stepValid}
+        />
+      </View>
     </View>
   );
 }

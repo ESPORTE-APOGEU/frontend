@@ -22,11 +22,15 @@ import { useProfile } from "@/hooks/useProfile";
 import { attachAuth } from "@/src/services/Api";
 import { Sport } from "@/src/services/UserService";
 
+// 👉 imports da versão “tela-perfil”
 import { useMyEvents } from "@/hooks/useMyEvents";
 import { Activity } from "@/src/components/profile/ActivityItem";
 import { ActivitiesSection } from "@/src/components/profile/ActivitiesSection";
 import { useRouter } from "expo-router";
+import { getUserFriends, getMutualFriends } from "@/src/services/FriendService";
 
+
+// 👉 constante que estava no outro branch (dev-with-form-fixes)
 const BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 export default function ProfileScreen() {
@@ -36,6 +40,8 @@ export default function ProfileScreen() {
 
   const { getToken, isSignedIn } = useAuth();
   const { user, isLoaded } = useUser();
+  const [friendsList, setFriendsList] = useState<any[]>([]);
+  const [friendsLoading, setFriendsLoading] = useState(true);
 
   const userId = user?.id as string | undefined;
 
@@ -84,7 +90,48 @@ export default function ProfileScreen() {
     })();
   }, [userId]);
 
-  // NOVO: util simples para "há X dias/semanas"
+  useEffect(() => {
+    if (!userId) return;
+    let mounted = true;
+    (async () => {
+      try {
+        setFriendsLoading(true);
+        const raw = await getUserFriends(userId); // amigos do usuário logado
+        // para cada amigo, calcula mutuals entre EU (logado) e ELE
+        const withMutuals = await Promise.all(raw.map(async (f:any) => {
+          try {
+            const m = await getMutualFriends(f.id);
+            return {
+              id: f.id,
+              name: f.name ?? "—",
+              city: f.city ?? "—",
+              avatarSrc: f.photo ? { uri: f.photo } : require("../../assets/images/Criador.png"),
+              mutualAvatarSrcs: (m.users ?? []).slice(0,3).map((u:any) =>
+                u.photo ? { uri: u.photo } : require("../../assets/images/Criador.png")
+              ),
+              mutualCount: m.total ?? 0,
+            };
+          } catch {
+            return {
+              id: f.id,
+              name: f.name ?? "—",
+              city: f.city ?? "—",
+              avatarSrc: f.photo ? { uri: f.photo } : require("../../assets/images/Criador.png"),
+              mutualAvatarSrcs: [],
+              mutualCount: 0,
+            };
+          }
+        }));
+        if (mounted) setFriendsList(withMutuals);
+      } finally {
+        if (mounted) setFriendsLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [userId]);
+
+
+  // util simples para "há X dias/semanas"
   function toTimeAgo(isoDate: string) {
     const d = new Date(isoDate);
     const now = new Date();
@@ -96,8 +143,10 @@ export default function ProfileScreen() {
     return weeks === 1 ? "Há 1 semana" : `Há ${weeks} semanas`;
   }
 
+
+
   const handleAddSport = async (sport: string) => {
-    const current = data?.sports ?? [];
+    const current = (data?.sports ?? []);
     const sportsAsStrings = current.map((s: Sport | string) =>
       typeof s === "string" ? s : s.name
     );
@@ -110,7 +159,7 @@ export default function ProfileScreen() {
   };
 
   const handleRemoveSport = async (sport: string) => {
-    const current = data?.sports ?? [];
+    const current = (data?.sports ?? []);
     try {
       const sportsAsStrings = current.map((s: Sport | string) =>
         typeof s === "string" ? s : s.name
@@ -161,7 +210,7 @@ export default function ProfileScreen() {
                   : require("../../assets/images/default_card.png"),
               price: ev.price ? String(ev.price) : "Free",
             }))}
-            onPressEvent={(ev) => openEvent(ev.id)}
+            onPressEvent={(ev) => openEvent(ev.id)} // navega para a tela do evento
             emptyText="Você ainda não se inscreveu em eventos"
           />
         );
@@ -174,31 +223,14 @@ export default function ProfileScreen() {
           />
         );
 
-      case "amigos":
+ case "amigos":
+        if (friendsLoading) return <Text className="px-7 text-black">Carregando amigos…</Text>;
         return (
           <Friends
-            friends={[
-              {
-                id: "1",
-                name: "Diego Alcantara",
-                city: "São Paulo",
-                avatar: "user1",
-                mutualAvatars: ["user2", "user3", "user1"],
-                mutualCount: 4,
-              },
-              {
-                id: "2",
-                name: "Marina Rocha",
-                city: "Goiânia",
-                avatar: "user3",
-                mutualAvatars: ["user1", "user2"],
-                mutualCount: 3,
-              },
-            ]}
+            friends={friendsList}
             emptyText="Você ainda não adicionou amigos"
           />
         );
-
       default:
         return null;
     }
