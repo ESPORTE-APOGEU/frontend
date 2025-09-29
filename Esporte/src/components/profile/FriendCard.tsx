@@ -1,19 +1,14 @@
+// src/components/profile/FriendCard.tsx
 import React from "react";
-import { View, Text, Image, TouchableOpacity } from "react-native";
+import { View, Text, Image, TouchableOpacity, ImageSourcePropType } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-
-export const images = {
-  user1: require("../../assets/images/Criador.png"),
-  user2: require("../../assets/images/Criador.png"),
-  user3: require("../../assets/images/Criador.png"),
-} as const;
 
 type Props = {
   id: string;
   name: string;
   city: string;
-  avatar: keyof typeof images;
-  mutualAvatars?: (keyof typeof images)[];
+  avatarSrc: ImageSourcePropType;            // <— agora é um ImageSource genérico
+  mutualAvatarSrcs?: ImageSourcePropType[];  // <— até 3 overlays
   mutualCount: number;
   onPressAvatar?: () => void;
   onPressMutual?: () => void;
@@ -24,11 +19,12 @@ export function FriendCard({
   id,
   name,
   city,
-  avatar,
-  mutualAvatars = [],
+  avatarSrc,
+  mutualAvatarSrcs = [],
   mutualCount,
   onPressAvatar,
   onPressMutual,
+  onPressAdd,
 }: Props) {
   return (
     <View
@@ -39,7 +35,7 @@ export function FriendCard({
       <TouchableOpacity onPress={onPressAvatar} className="mr-4">
         <View className="shadow-md rounded-full">
           <View className="rounded-full overflow-hidden">
-            <Image source={images[avatar]} className="w-[54px] h-[54px]" />
+            <Image source={avatarSrc} className="w-[54px] h-[54px]" />
           </View>
         </View>
       </TouchableOpacity>
@@ -69,10 +65,10 @@ export function FriendCard({
       {/* Avatares mútuos sobrepostos + número */}
       <View className="flex-row items-end mr-1">
         <View className="flex-row items-center mb-1">
-          {mutualAvatars.slice(0, 3).map((m, i) => (
-            <TouchableOpacity key={`${id}-${m}-${i}`} onPress={onPressMutual}>
+          {mutualAvatars.slice(0, 3).map((src, i) => (
+            <TouchableOpacity key={`${id}-m-${i}`} onPress={onPressMutual}>
               <Image
-                source={images[m]}
+                source={src}
                 className={[
                   "w-[27px] h-[27px] rounded-full border border-white",
                   i ? "-ml-2" : "",
