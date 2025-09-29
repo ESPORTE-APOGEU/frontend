@@ -1,7 +1,9 @@
 // src/components/profile/Friends.tsx
 import React from "react";
+
 import { View, Text, ImageSourcePropType } from "react-native";
 import { FriendCard } from "./FriendCard";
+
 
 export type FriendItem = {
   id: string;

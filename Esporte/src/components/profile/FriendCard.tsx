@@ -16,39 +16,71 @@ type Props = {
 };
 
 export function FriendCard({
-  id, name, city, avatarSrc, mutualAvatarSrcs = [], mutualCount,
-  onPressAvatar, onPressMutual, onPressAdd,
+  id,
+  name,
+  city,
+  avatarSrc,
+  mutualAvatarSrcs = [],
+  mutualCount,
+  onPressAvatar,
+  onPressMutual,
+  onPressAdd,
 }: Props) {
   return (
-    <View className="flex-row items-center rounded-2xl mb-3 py-3"
-      style={{ shadowColor:"#000", shadowOffset:{width:0,height:2}, shadowOpacity:0.15, shadowRadius:6, elevation:2 }}>
-      <TouchableOpacity onPress={onPressAvatar}>
-        <Image
-          source={avatarSrc}
-          className="w-[54px] h-[54px] rounded-full mr-4"
-          style={{ shadowColor:"#000", shadowOpacity:0.25, shadowRadius:4 }}
-        />
+    <View
+      className="flex-row items-center rounded-2xl mb-3 py-3 bg-white px-3 shadow-md"
+      style={{ elevation: 3 }} // Android
+    >
+      {/* Avatar principal (sombra no wrapper, borda arredondada no inner) */}
+      <TouchableOpacity onPress={onPressAvatar} className="mr-4">
+        <View className="shadow-md rounded-full">
+          <View className="rounded-full overflow-hidden">
+            <Image source={avatarSrc} className="w-[54px] h-[54px]" />
+          </View>
+        </View>
       </TouchableOpacity>
 
+      {/* Nome + cidade */}
       <View className="flex-1">
-        <Text className="text-black text-[17px] leading-[20px] font-semibold">{name}</Text>
+        <Text
+          className="text-black text-[17px] font-semibold leading-[20px]"
+          numberOfLines={1}
+        >
+          {name}
+        </Text>
+
         <View className="flex-row items-center mt-1">
           <View className="w-[19px] h-[19px] rounded bg-[#10CF65] items-center justify-center mr-2">
-            <Ionicons name="location" size={12} color="#fff" />
+            <Ionicons name="location-outline" size={12} color="#fff" />
           </View>
-          <Text className="text-black text-[14px] leading-[17px]">{city}</Text>
+          <Text
+            className="text-black text-[14px] leading-[17px]"
+            numberOfLines={1}
+          >
+            {city}
+          </Text>
         </View>
       </View>
 
-      <View className="flex-row justify-center items-end mr-3">
+      {/* Avatares mútuos sobrepostos + número */}
+      <View className="flex-row items-end mr-1">
         <View className="flex-row items-center mb-1">
-          {mutualAvatarSrcs.slice(0,3).map((src, i) => (
+          {mutualAvatars.slice(0, 3).map((src, i) => (
             <TouchableOpacity key={`${id}-m-${i}`} onPress={onPressMutual}>
-              <Image source={src} className={`w-[27px] h-[27px] rounded-full ${i ? "-ml-2" : ""}`} />
+              <Image
+                source={src}
+                className={[
+                  "w-[27px] h-[27px] rounded-full border border-white",
+                  i ? "-ml-2" : "",
+                  i === 0 ? "z-30" : i === 1 ? "z-20" : "z-10", // garante ordem no Android
+                ].join(" ")}
+              />
             </TouchableOpacity>
           ))}
         </View>
-        <Text className="text-black text-[20px] leading-6">{mutualCount}</Text>
+        <Text className="text-black text-[20px] leading-6 ml-2">
+          {mutualCount}
+        </Text>
       </View>
     </View>
   );

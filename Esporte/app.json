@@ -16,7 +16,7 @@
         "foregroundImage": "./src/assets/images/icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "com.b0ts4.Umax"
+      "package": "com.umax"
     },
     "web": {
       "bundler": "metro",
@@ -27,6 +27,7 @@
       [
         "expo-splash-screen",
         {
+          "image": "./src/assets/images/icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
