@@ -36,3 +36,13 @@ export async function getUserParticipatedEvents(userId: string): Promise<EventIt
   return data;
 }
 
+
+export async function getMyCreatedEvents(): Promise<EventItem[]> {
+  const { data } = await api.get("/events/me/created");
+  return data;
+}
+
+export async function getUserCreatedEvents(userId: string): Promise<EventItem[]> {
+  const { data } = await api.get(`/events/user/${userId}/created`);
+  return data;
+}

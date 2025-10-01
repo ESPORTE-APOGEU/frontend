@@ -3,13 +3,12 @@ import {
   View,
   Text,
   Pressable,
-  Image,
   BackHandler,
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter, useNavigation } from "expo-router";
 
 import StepsSignup from "@/src/components/Auth/StepsController";
 import useSignup from "@/hooks/Singup";
@@ -19,29 +18,37 @@ export default function CriarContaScreen() {
   const [step, setStep] = React.useState(1);
   const { form, setForm } = useSignup();
 
-  const handleNext = () => {
-    setStep((prevStep) => prevStep + 1);
-  };
-  const handleBack = () => {
-    setStep((prevStep) => (prevStep > 1 ? prevStep - 1 : prevStep));
-  };
+  const router = useRouter();
+  const navigation = useNavigation();
+
+  const handleNext = () => setStep((prev) => prev + 1);
+
+  const handleBack = React.useCallback(() => {
+    if (step > 1) {
+      setStep((s) => s - 1);
+    } else if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      router.replace("/auth/sign-in");
+    }
+  }, [step, navigation, router]);
+
   useFocusEffect(
     React.useCallback(() => {
       const onBackPress = () => {
-        if (step > 1) {
-          setStep((prev) => prev - 1);
-          return true;
-        }
-        return false; // Permite o back do sistema quando step é 1
+        // mesmo comportamento do botão de voltar da UI
+        handleBack();
+        return true; // consumimos o back do Android
       };
 
-      const subscription = BackHandler.addEventListener(
+      const sub = BackHandler.addEventListener(
         "hardwareBackPress",
         onBackPress
       );
-      return () => subscription.remove();
-    }, [step])
+      return () => sub.remove();
+    }, [handleBack])
   );
+
   return (
     <SafeAreaView className="flex-1 bg-white">
       <KeyboardAvoidingView
