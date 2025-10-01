@@ -102,7 +102,7 @@ export default function RatingModal({ visible, onClose, user, avaliationId, toke
             <View className="flex-row items-center justify-center">
               {[1, 2, 3, 4, 5].map((i) => (
                 <TouchableOpacity key={i} onPress={() => handleStarPress(i)} className="p-1.5">
-                  <Ionicons name={i <= rating ? 'star' : 'star-outline'} size={28} color={i <= rating ? '#00D36C' : '#A3A3A3'} />
+                  <Ionicons name={i <= rating ? 'star' : 'star-outline'} size={28} color={i <= rating ? '#43A047' : '#A3A3A3'} />
                 </TouchableOpacity>
               ))}
             </View>
@@ -113,7 +113,7 @@ export default function RatingModal({ visible, onClose, user, avaliationId, toke
                 <TouchableOpacity
                   key={lvl}
                   onPress={() => handleLevelPress(lvl)}
-                  className={`px-2.5 py-1.5 rounded-full bg-[#F0F0F0] mr-2 mt-1 ${level === lvl ? 'bg-[#00D36C]' : ''}`}
+                  className={`px-2.5 py-1.5 rounded-full bg-[#F0F0F0] mr-2 mt-1 ${level === lvl ? 'bg-[#43A047]' : ''}`}
                 >
                   <Text className={`text-[#333] font-semibold ${level === lvl ? 'text-white' : ''}`}>{lvl}</Text>
                 </TouchableOpacity>
@@ -130,7 +130,7 @@ export default function RatingModal({ visible, onClose, user, avaliationId, toke
             />
 
             <TouchableOpacity
-              className={`bg-[#00D36C] py-3 rounded-lg w-full items-center mt-3 ${submitting ? 'opacity-60' : ''}`}
+              className={`bg-[#43A047] py-3 rounded-lg w-full items-center mt-3 ${submitting ? 'opacity-60' : ''}`}
               onPress={handleSubmit}
               disabled={submitting}
             >

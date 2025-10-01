@@ -7,9 +7,10 @@ type ReportModalProps = {
   visible: boolean;
   onClose: () => void;
   onSubmit?: (reason: string, description: string) => void;
+   reportedUserId?: string;
 };
 
-export default function ReportModal({ visible, onClose, onSubmit }: ReportModalProps) {
+export default function ReportModal({ visible, onClose, onSubmit, reportedUserId }: ReportModalProps) {
   const [reason, setReason] = useState<string>('Conduta antidesportiva');
   const [description, setDescription] = useState<string>('');
 
@@ -40,18 +41,20 @@ export default function ReportModal({ visible, onClose, onSubmit }: ReportModalP
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = () => {
-    // call backend
     (async () => {
       try {
         setLoading(true);
         const type = mapReasonToType(reason);
-        const payload = { type, description, reportedUserId: undefined } as any;
-        // If parent provided onSubmit, allow it to populate reportedUserId or event
-        if (onSubmit) {
-          onSubmit(reason, description);
-        }
-        // try to create report via service; ignore if parent handled persistence
-        await createReport(payload);
+        const payload = {
+          type,
+          description,
+          reportedUserId,      // <<< garante que vai com o alvo
+        } as any;
+
+        // Se o pai quiser tratar algo (telemetria etc.)
+        onSubmit?.(reason, description);
+
+        await createReport(payload);   // mantém persistência centralizada aqui
         setLoading(false);
         onClose();
         Alert.alert('Denúncia enviada', 'Sua denúncia foi recebida com sucesso.');
@@ -85,7 +88,7 @@ export default function ReportModal({ visible, onClose, onSubmit }: ReportModalP
                 return (
                   <TouchableOpacity key={r} className="flex-row justify-between items-center py-3" onPress={() => handleSelect(r)}>
                     <Text className="text-[15px] text-[#111] font-semibold">{r}</Text>
-                    <Ionicons name={selected ? 'checkmark-circle' : 'ellipse-outline'} size={26} color={selected ? '#00D36C' : '#A3A3A3'} />
+                    <Ionicons name={selected ? 'checkmark-circle' : 'ellipse-outline'} size={26} color={selected ? '#43A047' : '#A3A3A3'} />
                   </TouchableOpacity>
                 );
               })}
@@ -101,7 +104,7 @@ export default function ReportModal({ visible, onClose, onSubmit }: ReportModalP
             />
 
             <TouchableOpacity
-              className={`bg-[#00D36C] py-3 rounded-lg w-full items-center mt-3 ${!reason || loading ? 'opacity-50' : ''}`}
+              className={`bg-[#43A047] py-3 rounded-lg w-full items-center mt-3 ${!reason || loading ? 'opacity-50' : ''}`}
               onPress={handleSubmit}
               disabled={!reason || loading}
             >

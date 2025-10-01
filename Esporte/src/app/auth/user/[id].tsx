@@ -23,6 +23,9 @@ import { getMutualFriends, MutualFriendsDTO } from "@/src/services/FriendService
 import { useUserEvents } from "@/hooks/useUserEvents";
 import { useUser } from "@clerk/clerk-expo";
 import { createFriendRequest, getFriendRequestStatus, FriendRequestStatusDTO } from "@/src/services/FriendRequestService";
+import { Modal } from "react-native"; // (se ainda não tiver)
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import ReportModal from "@/src/components/ReportModal";
 
 import { getUserCreatedEvents } from "@/src/services/UserEventService";
 
@@ -40,6 +43,8 @@ export default function OtherProfileScreen() {
   const [data, setData] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  const [reportVisible, setReportVisible] = useState(false);
+
 
   const [friends, setFriends] = useState<FriendLite[]>([]);
   const [friendsLoading, setFriendsLoading] = useState(true);
@@ -335,6 +340,25 @@ const avgRating =
 // --- JSX principal ---
 return (
   <SafeAreaView className="flex-1 bg-[#F7FFED]">
+    {meId !== id && (
+      <TouchableOpacity
+        onPress={() => setReportVisible(true)}
+        style={{
+          position: "absolute",
+          right: 16,
+          top: 10,
+          zIndex: 20,
+          width: 32,
+          height: 32,
+          borderRadius: 0,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "transparent",
+        }}
+      >
+        <MaterialCommunityIcons name="alert-circle-outline" size={20} color="#111" />
+      </TouchableOpacity>
+    )}
     {loading ? (
       <View className="flex-1 items-center justify-center">
         <ActivityIndicator />
@@ -414,6 +438,17 @@ return (
         </View>
       </ScrollView>
     )}
+
+    <ReportModal
+      visible={reportVisible}
+      onClose={() => setReportVisible(false)}
+      reportedUserId={String(id)}   // <<< ESSENCIAL: envia o alvo
+      onSubmit={(reason, description) => {
+        // opcional: telemetria / logs locais
+        console.log("Report:", { target: id, reason, description });
+      }}
+    />
+
   </SafeAreaView>
 );
 
