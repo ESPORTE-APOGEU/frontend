@@ -8,6 +8,7 @@ import BottomNavigation from "../components/FutterBar";
 import { FriendSuggestions, Suggestion } from "../components/FriendSuggestions";
 import { getPendingRequests, respondToRequest, createFriendRequest } from "../services/FriendRequestService";
 import { getFriendSuggestions } from "../services/FriendSuggestionService";
+import { getMutualFriends } from "../services/FriendService";
 import {flattenArray} from "expo-router/vendor/react-helmet-async/lib/utils";
 import { attachAuth } from "@/src/services/Api"; // <-- traga isto também
 import { useRouter } from "expo-router";
@@ -50,22 +51,49 @@ export default function FriendsScreen() {
     router.push({ pathname: "/auth/user/[id]", params: { id: userId } });
   };
 
-  // Mantido: sua função original para buscar sugestões, agora usando o serviço atualizado
-    const fetchFriendSuggestions = async () => {
-      try {
-        const data = await getFriendSuggestions();
-        const formattedData = data.map((sug: any) => ({
-          id: sug.id,
-          name: sug.name || "Usuário",
-          avatar: sug.avatar || null,          // << usar 'avatar' do back
-          mutualCount: sug.mutualCount || 0,
-        }));
-        setSuggestions(formattedData);
-      } catch (error) {
-        console.error("Erro ao buscar sugestões:", error);
-        Alert.alert("Erro", "Não foi possível carregar as sugestões de amizade.");
-      }
-    };
+// screens/FriendsScreen.tsx — substitua só esta função
+// screens/FriendsScreen.tsx — substitua só esta função
+const fetchFriendSuggestions = async () => {
+  try {
+    const data = await getFriendSuggestions();
+
+    // Para cada sugestão, buscamos os amigos em comum (até 3) e passamos as URLs das fotos
+    const enriched = await Promise.all(
+      data.map(async (sug: any) => {
+        try {
+          const m = await getMutualFriends(sug.id); // /friendships/mutual/{id}
+
+          // O componente FriendSuggestions espera `mutualAvatars?: string[]`
+          const mutualAvatars: (string | null)[] = (m.users ?? [])
+            .slice(0, 3)
+            .map((u: any) => u.photo || null);
+
+          return {
+            id: String(sug.id),
+            name: sug.name || "Usuário",
+            avatar: sug.avatar || null, // foto do sugerido
+            mutualCount: m.total ?? (sug.mutualCount || 0),
+            mutualAvatars,              // <-- NOME CORRETO AQUI
+          };
+        } catch {
+          return {
+            id: String(sug.id),
+            name: sug.name || "Usuário",
+            avatar: sug.avatar || null,
+            mutualCount: sug.mutualCount || 0,
+            mutualAvatars: [],          // <-- e aqui também
+          };
+        }
+      })
+    );
+
+    setSuggestions(enriched);
+  } catch (error) {
+    console.error("Erro ao buscar sugestões:", error);
+    Alert.alert("Erro", "Não foi possível carregar as sugestões de amizade.");
+  }
+};
+
 
   const onRefresh = useCallback(async () => {
     if (!isLoaded || !isSignedIn) return;   // <-- inclui isLoaded

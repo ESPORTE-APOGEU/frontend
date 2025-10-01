@@ -22,7 +22,7 @@ import MutualFriends from "@/src/components/profile/MutualFriends";
 import { getMutualFriends, MutualFriendsDTO } from "@/src/services/FriendService";
 import { useUserEvents } from "@/hooks/useUserEvents";
 import { useUser } from "@clerk/clerk-expo";
-import { createFriendRequest } from "@/src/services/FriendRequestService"; // 👈
+import { createFriendRequest, getFriendRequestStatus, FriendRequestStatusDTO } from "@/src/services/FriendRequestService";
 
 import { getUserCreatedEvents } from "@/src/services/UserEventService";
 
@@ -51,6 +51,8 @@ export default function OtherProfileScreen() {
   const [createdCount, setCreatedCount] = useState(0);
   const [friendsCount, setFriendsCount] = useState(0);
   const [sportStats, setSportStats] = useState<Record<string, number>>({});
+  const [frStatus, setFrStatus] = useState<FriendRequestStatusDTO | null>(null);
+
 
     const [isFriend, setIsFriend] = useState<boolean>(false);
   const [sendingRequest, setSendingRequest] = useState(false);
@@ -194,10 +196,44 @@ useEffect(() => {
    })();
  }, [id, getToken]);
 
+useEffect(() => {
+  let mounted = true;
+  (async () => {
+    try {
+      if (!id) return;
+      const s = await getFriendRequestStatus(String(id));
+      if (mounted) setFrStatus(s);
+    } catch (e) {
+      // silencioso
+    }
+  })();
+  return () => { mounted = false; };
+}, [id]);
+
+const alreadyBlocked =
+  !!frStatus?.isFriend || !!frStatus?.pendingOutgoing || !!frStatus?.pendingIncoming;
+
+// altera o rótulo/estado do botão
+const addBtn = (() => {
+  if (frStatus?.isFriend) return { label: "Vocês já são amigos", disabled: true };
+  if (frStatus?.pendingOutgoing) return { label: "Solicitação enviada", disabled: true };
+  if (frStatus?.pendingIncoming) return { label: "Responder solicitação", disabled: true }; // ou navegar para inbox
+  return { label: "Adicionar como amigo", disabled: false };
+})();
+
 const handleAddFriend = async () => {
+  // guarda defensiva no cliente
+  if (alreadyBlocked) return;
   try {
     setSendingRequest(true);
-    await createFriendRequest(String(id));   // 👈 usa o serviço (params)
+    await createFriendRequest(String(id));
+    // após criar, marca como pendente para travar taps subsequentes
+    setFrStatus({
+      isFriend: false,
+      pendingOutgoing: true,
+      pendingIncoming: false,
+      requestId: null,
+    });
     Alert.alert("Sucesso", "Solicitação enviada!");
   } catch (e: any) {
     const msg = e?.response?.data?.message || e?.message || "Falha ao enviar solicitação";
@@ -206,7 +242,6 @@ const handleAddFriend = async () => {
     setSendingRequest(false);
   }
 };
-
 
 // Média global de rating (igual à do seu ProfileScreen)
 const avgRating =
@@ -351,26 +386,27 @@ return (
             <View className="px-7 mt-4">{renderTabContent()}</View>
           </>
         ) : (
-          /* ====== NÃO É AMIGO: CTA + mensagem ====== */
-          <View className="px-7 mt-4">
-            <TouchableOpacity
-              onPress={handleAddFriend}
-              disabled={sendingRequest}
-              className="bg-[#43A047] rounded-2xl items-center justify-center"
-              style={{ height: 54, opacity: sendingRequest ? 0.6 : 1 }}
-            >
-              <Text className="text-white font-semibold" style={{ fontSize: 18 }}>
-                Adicionar como amigo
-              </Text>
-            </TouchableOpacity>
 
-            <Text
-              className="text-[#969696] text-center"
-              style={{ marginTop: 16, fontSize: 14, lineHeight: 18 }}
-            >
-              Não é possível ver mais informações{"\n"}pois vocês não estão conectados
+        <View className="px-7 mt-4">
+          <TouchableOpacity
+            onPress={handleAddFriend}
+            disabled={sendingRequest || addBtn.disabled}
+            className="bg-[#43A047] rounded-2xl items-center justify-center"
+            style={{ height: 54, opacity: (sendingRequest || addBtn.disabled) ? 0.6 : 1 }}
+          >
+            <Text className="text-white font-semibold" style={{ fontSize: 18 }}>
+              {addBtn.label}
             </Text>
-          </View>
+          </TouchableOpacity>
+
+          <Text
+            className="text-[#969696] text-center"
+            style={{ marginTop: 16, fontSize: 14, lineHeight: 18 }}
+          >
+            Não é possível ver mais informações{"\n"}pois vocês não estão conectados
+          </Text>
+        </View>
+
         )}
 
         <View className="mt-48">
