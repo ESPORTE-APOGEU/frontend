@@ -13,6 +13,7 @@ type Props = {
   onPressAvatar?: () => void;
   onPressMutual?: () => void;
   onPressAdd?: () => void;
+  onPressCard?: () => void;
 };
 
 export function FriendCard({
@@ -25,9 +26,12 @@ export function FriendCard({
   onPressAvatar,
   onPressMutual,
   onPressAdd,
+  onPressCard,
 }: Props) {
   return (
-    <View
+    <TouchableOpacity
+      onPress={onPressCard}
+      activeOpacity={0.8}
       className="flex-row items-center rounded-2xl mb-3 py-3 bg-white px-3 shadow-md"
       style={{ elevation: 3 }} // Android
     >
@@ -65,7 +69,7 @@ export function FriendCard({
       {/* Avatares mútuos sobrepostos + número */}
       <View className="flex-row items-end mr-1">
         <View className="flex-row items-center mb-1">
-          {mutualAvatars.slice(0, 3).map((src, i) => (
+          {mutualAvatarSrcs.slice(0, 3).map((src, i) => (
             <TouchableOpacity key={`${id}-m-${i}`} onPress={onPressMutual}>
               <Image
                 source={src}
@@ -82,6 +86,6 @@ export function FriendCard({
           {mutualCount}
         </Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }

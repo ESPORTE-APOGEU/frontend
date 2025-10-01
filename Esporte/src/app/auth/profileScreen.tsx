@@ -28,6 +28,7 @@ import { Activity } from "@/src/components/profile/ActivityItem";
 import { ActivitiesSection } from "@/src/components/profile/ActivitiesSection";
 import { useRouter } from "expo-router";
 import { getUserFriends, getMutualFriends } from "@/src/services/FriendService";
+import { getMyCreatedEvents } from "@/src/services/UserEventService";
 
 
 // 👉 constante que estava no outro branch (dev-with-form-fixes)
@@ -40,6 +41,8 @@ export default function ProfileScreen() {
 
   const { getToken, isSignedIn } = useAuth();
   const { user, isLoaded } = useUser();
+  const [friendsCount, setFriendsCount] = useState(0);
+  const [createdCount, setCreatedCount] = useState(0);
   const [friendsList, setFriendsList] = useState<any[]>([]);
   const [friendsLoading, setFriendsLoading] = useState(true);
 
@@ -61,6 +64,7 @@ export default function ProfileScreen() {
     err: errEvents,
   } = useMyEvents();
 
+  const participatedCount = participated?.length ?? 0;
   // ---- NOVO: stats por esporte (média 0..3 por nome do esporte) ----
   const [sportStats, setSportStats] = useState<Record<string, number>>({});
 
@@ -97,6 +101,7 @@ export default function ProfileScreen() {
       try {
         setFriendsLoading(true);
         const raw = await getUserFriends(userId); // amigos do usuário logado
+        setFriendsCount(raw?.length ?? 0);
         // para cada amigo, calcula mutuals entre EU (logado) e ELE
         const withMutuals = await Promise.all(raw.map(async (f:any) => {
           try {
@@ -130,6 +135,19 @@ export default function ProfileScreen() {
     return () => { mounted = false; };
   }, [userId]);
 
+  useEffect(() => {
+    if (!userId) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const created = await getMyCreatedEvents();
+        if (mounted) setCreatedCount(created?.length ?? 0);
+      } catch {
+        if (mounted) setCreatedCount(0);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [userId]);
 
   // util simples para "há X dias/semanas"
   function toTimeAgo(isoDate: string) {
@@ -229,6 +247,9 @@ export default function ProfileScreen() {
           <Friends
             friends={friendsList}
             emptyText="Você ainda não adicionou amigos"
+            onOpenProfile={(userId) =>
+              router.push({ pathname: "/auth/user/[id]", params: { id: userId } })
+            }
           />
         );
       default:
@@ -281,12 +302,17 @@ export default function ProfileScreen() {
         </View>
       ) : (
         <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
-          <ProfileHeader
-            name={data?.name ?? user?.fullName ?? "—"}
-            photoUrl={data?.photo ?? user?.imageUrl ?? undefined}
-            stats={{ friends: 144, activities: 12, createdActivities: 2 }}
-            rating={avgRating != null ? avgRating.toFixed(2) : "—"}
-          />
+        <ProfileHeader
+          name={data?.name ?? user?.fullName ?? "—"}
+          photoUrl={data?.photo ?? user?.imageUrl ?? undefined}
+          stats={{
+            friends: friendsCount,
+            activities: participatedCount,
+            createdActivities: createdCount,
+          }}
+          rating={avgRating != null ? avgRating.toFixed(2) : "—"}
+        />
+
 
           <ProfileInfo
             ageText={

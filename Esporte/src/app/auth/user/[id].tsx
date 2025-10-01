@@ -23,13 +23,17 @@ import { getMutualFriends, MutualFriendsDTO } from "@/src/services/FriendService
 import { useUserEvents } from "@/hooks/useUserEvents";
 import { useUser } from "@clerk/clerk-expo";
 import { createFriendRequest } from "@/src/services/FriendRequestService"; // 👈
+
+import { getUserCreatedEvents } from "@/src/services/UserEventService";
+
+const BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL; 
 export default function OtherProfileScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getToken } = useAuth();
   const { user: me } = useUser();                  // +++ eu (logado)
   const meId = me?.id;
-
+  const BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
   const [tab, setTab] = useState<ActionTabKey>("participados");
 
@@ -43,6 +47,10 @@ export default function OtherProfileScreen() {
   // depois de carregar `friends`, monte o array com mutuals e fotos:
   const [friendsList, setFriendsList] = useState<any[]>([]);
   const [mutual, setMutual] = useState<MutualFriendsDTO | null>(null);
+
+  const [createdCount, setCreatedCount] = useState(0);
+  const [friendsCount, setFriendsCount] = useState(0);
+  const [sportStats, setSportStats] = useState<Record<string, number>>({});
 
     const [isFriend, setIsFriend] = useState<boolean>(false);
   const [sendingRequest, setSendingRequest] = useState(false);
@@ -98,6 +106,7 @@ useEffect(() => {
       const mine = await getUserFriends(meId);
       const amFriend = !!(mine ?? []).find((f) => f.id === String(id));
       if (mounted) setIsFriend(amFriend);
+      
     } catch (e) {
       console.warn("Erro ao checar amizade:", (e as any)?.message);
       if (mounted) setIsFriend(false);
@@ -112,6 +121,7 @@ useEffect(() => {
     try {
       setFriendsLoading(true);
       const raw = await getUserFriends(String(id)); // amigos do perfil visitado
+      if (mounted) setFriendsCount(raw?.length ?? 0);
       const withMutuals = await Promise.all(raw.map(async (f:any) => {
         try {
           const m = await getMutualFriends(f.id); // mutual EU x AMIGO
@@ -146,8 +156,43 @@ useEffect(() => {
   // eventos do usuário visto
   const { registered, participated, loading: loadingEvents, err: errEvents } = useUserEvents(String(id));
 
+ useEffect(() => {
+   if (!id) return;
+   let mounted = true;
+   (async () => {
+     try {
+       const created = await getUserCreatedEvents(String(id));
+       if (mounted) setCreatedCount(created?.length ?? 0);
+     } catch {
+       if (mounted) setCreatedCount(0);
+     }
+   })();
+   return () => { mounted = false; };
+ }, [id]);
 
 
+ useEffect(() => {
+   if (!id || !BASE_URL) return;
+   (async () => {
+     try {
+       const token =
+         (await getToken({ template: "backend", skipCache: true })) ||
+         (await getToken({ template: "backend" }));
+       if (!token) return;
+       const res = await fetch(
+         `${BASE_URL}/api/v1/users/${encodeURIComponent(String(id))}/sport-stats`,
+         { headers: { Authorization: `Bearer ${token}` } }
+       );
+       if (!res.ok) return;
+       const list: { sport: string; averageSkill?: number | null }[] = await res.json();
+       const map: Record<string, number> = {};
+       list.forEach((s) => { if (s.averageSkill != null) map[s.sport] = s.averageSkill as number; });
+       setSportStats(map);
+     } catch {
+       // silencioso
+     }
+   })();
+ }, [id, getToken]);
 
 const handleAddFriend = async () => {
   try {
@@ -162,6 +207,14 @@ const handleAddFriend = async () => {
   }
 };
 
+
+// Média global de rating (igual à do seu ProfileScreen)
+const avgRating =
+  (data as any)?.totalReceivedEvaluations &&
+  (data as any)?.totalReceivedEvaluations > 0
+    ? ((data as any).totalRating ?? 0) /
+      (data as any).totalReceivedEvaluations
+    : null;
 
   // util “há X…”
   function toTimeAgo(isoDate: string) {
@@ -236,6 +289,9 @@ const handleAddFriend = async () => {
             <Friends
               friends={friendsList}
               emptyText="Sem amigos por enquanto"
+              onOpenProfile={(userId) =>
+                router.push({ pathname: "/auth/user/[id]", params: { id: userId } })
+              }
             />
           );
       }
@@ -258,11 +314,11 @@ return (
           name={data?.name ?? "—"}
           photoUrl={data?.photo ?? undefined}
           stats={{
-            friends: (friends ?? []).length,
-            activities: participated?.length ?? 0,
-            createdActivities: 0
+          friends: friendsCount,
+          activities: participated?.length ?? 0,
+          createdActivities: createdCount,
           }}
-          rating="4.80"
+          rating={avgRating != null ? avgRating.toFixed(2) : "—"}
         />
 
         <ProfileInfo
@@ -284,6 +340,7 @@ return (
         <View className="mb-4">
           <SportsSection
             sports={(data?.sports ?? []).map((s: any) => (typeof s === "string" ? s : s.name))}
+            perSportLevel={sportStats}
           />
         </View>
 
