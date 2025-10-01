@@ -33,7 +33,7 @@ export function ImageUploader({
   return (
     <Pressable
       onPress={pickImage}
-      className="w-full h-40 rounded-2xl bg-white items-center justify-center mb-4"
+      className="w-full h-40 rounded-2xl bg-transparent items-center justify-center mb-4"
       style={{ borderWidth: 1, borderColor: "#e5e7eb" }}
     >
       {preview ? (
@@ -44,7 +44,7 @@ export function ImageUploader({
         />
       ) : (
         <View className="items-center">
-          <Text className="text-[#6b7280]">Toque para adicionar a foto do evento</Text>
+          <Text className="text-[#6b7280]">Coloque aqui a imagem do seu evento</Text>
           <Text className="text-[#9ca3af] text-xs mt-1">16:9 recomendado</Text>
         </View>
       )}

@@ -1,5 +1,5 @@
 // screens/profile/ProfileScreen.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   ScrollView,
   View,
@@ -29,7 +29,7 @@ import { ActivitiesSection } from "@/src/components/profile/ActivitiesSection";
 import { useRouter } from "expo-router";
 import { getUserFriends, getMutualFriends } from "@/src/services/FriendService";
 import { getMyCreatedEvents } from "@/src/services/UserEventService";
-
+import SportsPickerModal from "@/src/components/profile/SportsPickerModal";
 
 // 👉 constante que estava no outro branch (dev-with-form-fixes)
 const BASE_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
@@ -45,7 +45,7 @@ export default function ProfileScreen() {
   const [createdCount, setCreatedCount] = useState(0);
   const [friendsList, setFriendsList] = useState<any[]>([]);
   const [friendsLoading, setFriendsLoading] = useState(true);
-
+const [pickerOpen, setPickerOpen] = useState(false);
   const userId = user?.id as string | undefined;
 
   // Injeta JWT do Clerk com template 'backend'
@@ -163,26 +163,24 @@ export default function ProfileScreen() {
 
 
 
+const currentSports: string[] = useMemo(() => (
+    data?.sports
+      ? data.sports.map((s: Sport | string) => (typeof s === "string" ? s : s.name))
+      : []
+  ), [data?.sports]);
+
   const handleAddSport = async (sport: string) => {
-    const current = (data?.sports ?? []);
-    const sportsAsStrings = current.map((s: Sport | string) =>
-      typeof s === "string" ? s : s.name
-    );
-    if (sportsAsStrings.includes(sport)) return;
+    if (currentSports.includes(sport)) return;
     try {
-      await saveSports([...sportsAsStrings, sport]);
+      await saveSports([...currentSports, sport]); // salva no backend
     } catch (e: any) {
       Alert.alert("Erro", e?.message ?? "Não foi possível adicionar o esporte");
     }
   };
 
-  const handleRemoveSport = async (sport: string) => {
-    const current = (data?.sports ?? []);
+const handleRemoveSport = async (sport: string) => {
     try {
-      const sportsAsStrings = current.map((s: Sport | string) =>
-        typeof s === "string" ? s : s.name
-      );
-      await saveSports(sportsAsStrings.filter((s: string) => s !== sport));
+      await saveSports(currentSports.filter((s) => s !== sport));
     } catch (e: any) {
       Alert.alert("Erro", e?.message ?? "Não foi possível remover o esporte");
     }
@@ -324,16 +322,10 @@ export default function ProfileScreen() {
 
           <View className="mb-4">
             <SportsSection
-              sports={
-                data?.sports
-                  ? data.sports.map((s: Sport | string) =>
-                      typeof s === "string" ? s : s.name
-                    )
-                  : []
-              }
+              sports={currentSports}
               perSportLevel={sportStats}
-              onAddSport={handleAddSport}
-              onRemoveSport={handleRemoveSport}
+              onAddPress={() => setPickerOpen(true)}   // <— abre o modal
+              onRemoveSport={handleRemoveSport}        // <— só no próprio perfil
             />
           </View>
 
@@ -345,6 +337,16 @@ export default function ProfileScreen() {
           </View>
         </ScrollView>
       )}
+
+            <SportsPickerModal
+        visible={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        selected={currentSports}
+        onSelect={(sport) => {
+          setPickerOpen(false);
+          handleAddSport(sport); // cria card e salva
+        }}
+      />
     </SafeAreaView>
   );
 }

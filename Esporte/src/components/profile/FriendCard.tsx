@@ -32,7 +32,7 @@ export function FriendCard({
     <TouchableOpacity
       onPress={onPressCard}
       activeOpacity={0.8}
-      className="flex-row items-center rounded-2xl mb-3 py-3 bg-white px-3 shadow-md"
+      className="flex-row items-center rounded-2xl mb-3 py-3 bg-transparent px-3 shadow-md"
       style={{ elevation: 3 }} // Android
     >
       {/* Avatar principal (sombra no wrapper, borda arredondada no inner) */}

@@ -1,17 +1,17 @@
-// components/profile/SportsSection.tsx
 import React from "react";
-import { View, Text, Pressable } from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
 import { SportCard } from "./SportCard";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 export const SportsSection = ({
   sports,
   perSportLevel,
-  onAddSport,
+  onAddPress,        // mostra o botão +
   onRemoveSport,
 }: {
   sports: string[];
-  perSportLevel?: Record<string, number>; // média 0..3 por esporte
-  onAddSport?: (sport: string) => void;
+  perSportLevel?: Record<string, number>;
+  onAddPress?: () => void;
   onRemoveSport?: (sport: string) => void;
 }) => {
   const skillLabel = (avg?: number) => {
@@ -22,30 +22,64 @@ export const SportsSection = ({
     return "Semiprofissional";
   };
 
+  // normaliza e mapeia só os esportes permitidos:
+  // Futebol, Basquete, Vôlei, Natação, Corrida, Tennis, Corrirda(typo)
+  const norm = (s: string) =>
+    s
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .trim();
+
+  const iconFor = (sport: string): keyof typeof MaterialCommunityIcons.glyphMap => {
+    const n = norm(sport);
+    if (n.includes("futebol")) return "soccer";
+    if (n.includes("basquete")) return "basketball";
+    if (n.includes("volei")) return "volleyball";
+    if (n.includes("natacao")) return "swim";
+    if (n.includes("corrida") || n.includes("corrirda")) return "run";
+    if (n.includes("tennis") || n.includes("tenis")) return "tennis";
+    // fallback (caso venha algo fora da lista)
+    return "dumbbell";
+  };
+
   return (
-    <View className="mt-6 px-7">
-      <Text className="text-[24px] font-medium text-black">Esportes</Text>
+    <View style={styles.wrapper}>
+      <Text style={styles.title}>Esportes</Text>
 
-      <View className="flex-row mt-3 flex-wrap gap-3">
-        {sports.map((s) => (
-          <Pressable key={s} onLongPress={() => onRemoveSport?.(s)}>
-            <SportCard
-              title={s}
-              level={skillLabel(perSportLevel?.[s])}
-              iconPath={require("../../assets/images/running-icon.png")}
-            />
+      <View style={styles.grid}>
+        {sports.map((s) => {
+          const body = (
+            <View key={s} style={styles.cardWrap}>
+              <SportCard
+                title={s}
+                level={skillLabel(perSportLevel?.[s])}
+                iconName={iconFor(s)}
+              />
+            </View>
+          );
+          return onRemoveSport ? (
+            <Pressable key={s} onLongPress={() => onRemoveSport?.(s)}>
+              {body}
+            </Pressable>
+          ) : (
+            body
+          );
+        })}
+
+        {onAddPress && (
+          <Pressable onPress={onAddPress} style={styles.cardWrap}>
+            <SportCard title="" level="" highlight iconName="plus" />
           </Pressable>
-        ))}
-
-        <Pressable onPress={() => onAddSport?.("Running")}>
-          <SportCard
-            title=""
-            level=""
-            highlight
-            iconPath={require("../../assets/images/plus-icon.png")}
-          />
-        </Pressable>
+        )}
       </View>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  wrapper: { marginTop: 24, paddingHorizontal: 28 },
+  title: { fontSize: 24, fontWeight: "600", color: "#000", marginBottom: 12 },
+  grid: { flexDirection: "row", flexWrap: "wrap", alignItems: "flex-start", marginTop: 4 },
+  cardWrap: { marginRight: 12, marginBottom: 12 },
+});
