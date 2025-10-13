@@ -14,7 +14,7 @@ import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 
 const GOOGLE_ICON = require("../../assets/images/google-logo.png");
-const APP_LOGO = require("../../assets/images/app-logo.png");
+const APP_LOGO = require("../../assets/images/app-logov3.png");
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
@@ -113,10 +113,10 @@ export default function LoginScreen() {
       <View
         className="
           absolute
-          bg-[#07D362]
+          bg-[#43A047]
           rounded-full
           w-[138vw] h-[138vw]
-          -top-[33vh]
+          -top-[35vh]
           -left-[19vw]
           -translate-x-1/2
         "
@@ -126,7 +126,7 @@ export default function LoginScreen() {
       <View
         className="
           absolute
-          bg-[#F2F2F2]
+          bg-transparent
           rounded-full
           items-center justify-center
           w-[25vw] h-[25vw]
@@ -135,9 +135,10 @@ export default function LoginScreen() {
           -translate-x-1/2
         "
       >
+
         <Image
           source={APP_LOGO}
-          className="w-[15.75vw] h-[15.75vw] rounded-[12px]"
+          className="w-[70.75vw] h-[60.75vw] rounded-[12px] bg-transparent mb-10"
           resizeMode="contain"
         />
       </View>
@@ -145,11 +146,11 @@ export default function LoginScreen() {
       <View className="flex-1 justify-center items-center px-[6%]">
         {/* Título */}
         <Text className="text-[#00432C] font-bold mt-[22vh] text-[48px]">
-          Join
+          
         </Text>
         {/* Subtítulo */}
         <Text className="text-[#999999] text-center mb-[6vh] text-[13px]">
-          Find sports and wellness events near you
+          Your wellness social network No Posts. Only meetings. Real meetings
         </Text>
 
         {/* Inputs */}
